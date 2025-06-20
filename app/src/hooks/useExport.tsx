@@ -1,5 +1,5 @@
 import { renderAudio } from "/imports/signal/packages/player/src"
-import { useDialog } from "dialog-hooks"
+import { useDialog } from "/imports/signal/packages/dialog-hooks/src"
 import { makeObservable, observable } from "mobx"
 import { createContext, useCallback, useContext, useMemo } from "react"
 import { downloadBlob } from "../helpers/Downloader"
@@ -42,7 +42,7 @@ export function useExport() {
     get openExportProgressDialog() {
       return useMobxSelector(
         () => exportStore.openExportProgressDialog,
-        [exportStore],
+        [exportStore]
       )
     },
     get progress() {
@@ -55,7 +55,7 @@ export function useExport() {
       (open: boolean) => {
         exportStore.openExportProgressDialog = open
       },
-      [exportStore],
+      [exportStore]
     ),
     cancelExport: useCallback(() => {
       exportStore.isCanceled = true

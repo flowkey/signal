@@ -1,4 +1,4 @@
-import { useProgress } from "dialog-hooks"
+import { useProgress } from "/imports/signal/packages/dialog-hooks/src"
 import { FC, useEffect, useState } from "react"
 import { useSetSong } from "../../actions"
 import { useLoadSongFromExternalMidiFile } from "../../actions/cloudSong"

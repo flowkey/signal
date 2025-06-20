@@ -1,5 +1,5 @@
 import styled from "@emotion/styled"
-import { useToast } from "dialog-hooks"
+import { useToast } from "/imports/signal/packages/dialog-hooks/src"
 import SkipNext from "mdi-react/SkipNextIcon.js"
 import SkipPrevious from "mdi-react/SkipPreviousIcon.js"
 import { observer } from "mobx-react-lite"

@@ -3,7 +3,7 @@ import {
   Shader,
   uniformMat4,
   uniformVec4,
-} from "@ryohey/webgl-react/legacy"
+} from "@ryohey/webgl-react/dist/legacy/index.js"
 import { NoteBuffer } from "./NoteShader"
 
 export const DrumNoteShader = (gl: WebGLRenderingContext) =>
@@ -62,5 +62,5 @@ export const DrumNoteShader = (gl: WebGLRenderingContext) =>
       projectionMatrix: uniformMat4(gl, program, "uProjectionMatrix"),
       strokeColor: uniformVec4(gl, program, "uStrokeColor"),
     }),
-    (gl) => new NoteBuffer(gl),
+    (gl) => new NoteBuffer(gl)
   )

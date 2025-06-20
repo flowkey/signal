@@ -1,4 +1,4 @@
-import { CloudSong } from "@signal-app/api"
+import { CloudSong } from "/imports/signal/packages/api/src"
 import { observer } from "mobx-react-lite"
 import { FC } from "react"
 import { SongListItem } from "./SongListItem.js"

@@ -3,7 +3,7 @@ import {
   ProgressProvider,
   PromptProvider,
   ToastProvider,
-} from "dialog-hooks"
+} from "/imports/signal/packages/dialog-hooks/src"
 import React from "react"
 import { HelmetProvider } from "react-helmet-async"
 import { ActionDialog } from "../../components/Dialog/ActionDialog"

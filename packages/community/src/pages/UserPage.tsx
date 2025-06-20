@@ -1,5 +1,5 @@
 import styled from "@emotion/styled"
-import { User } from "@signal-app/api"
+import { User } from "/imports/signal/packages/api/src"
 import { observer } from "mobx-react-lite"
 import { FC, useState } from "react"
 import { Helmet } from "react-helmet-async"

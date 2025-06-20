@@ -1,4 +1,4 @@
-import { useToast } from "dialog-hooks"
+import { useToast } from "/imports/signal/packages/dialog-hooks/src"
 import { FC, useCallback } from "react"
 import { useRootView } from "../../hooks/useRootView"
 import { useLocalization } from "../../localize/useLocalization"
@@ -11,7 +11,7 @@ export const SignInDialog: FC = () => {
 
   const onClose = useCallback(
     () => setOpenSignInDialog(false),
-    [setOpenSignInDialog],
+    [setOpenSignInDialog]
   )
 
   const signInSuccessWithAuthResult = async () => {

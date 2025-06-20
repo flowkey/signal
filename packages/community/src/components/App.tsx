@@ -1,5 +1,5 @@
 import { ThemeProvider } from "@emotion/react"
-import { ToastProvider } from "dialog-hooks"
+import { ToastProvider } from "/imports/signal/packages/dialog-hooks/src"
 import { FC } from "react"
 import { HelmetProvider } from "react-helmet-async"
 import { Toast } from "../components/Toast.js"
