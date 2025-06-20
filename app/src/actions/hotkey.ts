@@ -5,11 +5,13 @@ import {
   usePasteControlSelection,
 } from "../actions/control"
 import {
-  isControlEventsClipboardData,
-  isPianoNotesClipboardData,
+  ControlEventsClipboardDataSchema,
+  PianoNotesClipboardDataSchema,
 } from "../clipboard/clipboardTypes"
-import { useStores } from "../hooks/useStores"
-import Clipboard from "../services/Clipboard"
+import { useControlPane } from "../hooks/useControlPane"
+import { usePianoRoll } from "../hooks/usePianoRoll"
+import { useRouter } from "../hooks/useRouter"
+import { readClipboardData } from "../services/Clipboard"
 import {
   useArrangeCopySelection,
   useArrangeDeleteSelection,
@@ -22,18 +24,20 @@ import {
 } from "./tempo"
 
 export const useCopySelectionGlobal = () => {
-  const { router, pianoRollStore, controlStore } = useStores()
+  const { selectedNoteIds } = usePianoRoll()
+  const { path } = useRouter()
+  const { selectedEventIds: controlSelectedEventIds } = useControlPane()
   const copySelection = useCopySelection()
   const arrangeCopySelection = useArrangeCopySelection()
   const copyTempoSelection = useCopyTempoSelection()
   const copyControlSelection = useCopyControlSelection()
 
   return () => {
-    switch (router.path) {
+    switch (path) {
       case "/track":
-        if (pianoRollStore.selectedNoteIds.length > 0) {
+        if (selectedNoteIds.length > 0) {
           copySelection()
-        } else if (controlStore.selectedEventIds.length > 0) {
+        } else if (controlSelectedEventIds.length > 0) {
           copyControlSelection()
         }
         break
@@ -48,7 +52,9 @@ export const useCopySelectionGlobal = () => {
 }
 
 export const useCutSelectionGlobal = () => {
-  const { router, pianoRollStore, controlStore } = useStores()
+  const { selectedNoteIds } = usePianoRoll()
+  const { path } = useRouter()
+  const { selectedEventIds: controlSelectedEventIds } = useControlPane()
   const copySelection = useCopySelection()
   const deleteSelection = useDeleteSelection()
   const arrangeCopySelection = useArrangeCopySelection()
@@ -59,12 +65,12 @@ export const useCutSelectionGlobal = () => {
   const deleteControlSelection = useDeleteControlSelection()
 
   return () => {
-    switch (router.path) {
+    switch (path) {
       case "/track":
-        if (pianoRollStore.selectedNoteIds.length > 0) {
+        if (selectedNoteIds.length > 0) {
           copySelection()
           deleteSelection()
-        } else if (controlStore.selectedEventIds.length > 0) {
+        } else if (controlSelectedEventIds.length > 0) {
           copyControlSelection()
           deleteControlSelection()
         }
@@ -82,24 +88,23 @@ export const useCutSelectionGlobal = () => {
 }
 
 export const usePasteSelectionGlobal = () => {
-  const { router } = useStores()
+  const { path } = useRouter()
   const pasteSelection = usePasteSelection()
   const arrangePasteSelection = useArrangePasteSelection()
   const pasteTempoSelection = usePasteTempoSelection()
   const pasteControlSelection = usePasteControlSelection()
 
-  return () => {
-    switch (router.path) {
+  return async () => {
+    switch (path) {
       case "/track": {
-        const text = Clipboard.readText()
-        if (!text || text.length === 0) {
+        const obj = await readClipboardData()
+        if (!obj) {
           return
         }
-        const obj = JSON.parse(text)
-        if (isPianoNotesClipboardData(obj)) {
-          pasteSelection()
-        } else if (isControlEventsClipboardData(obj)) {
-          pasteControlSelection()
+        if (PianoNotesClipboardDataSchema.safeParse(obj).success) {
+          pasteSelection(obj)
+        } else if (ControlEventsClipboardDataSchema.safeParse(obj).success) {
+          pasteControlSelection(obj)
         }
         break
       }

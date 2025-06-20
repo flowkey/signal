@@ -5,14 +5,12 @@ import {
   OAuthProvider,
   signInWithCredential,
 } from "firebase/auth"
-import { observer } from "mobx-react-lite"
 import { FC } from "react"
 import { FirebaseCredential } from "../../../../electron/src/FirebaseCredential"
 import { auth } from "../.././firebase/firebase"
 import {
   useDeleteSelection,
   useDuplicateSelection,
-  useExportSong,
   useQuantizeSelectedNotes,
   useSelectAllNotes,
   useSelectNextNote,
@@ -21,26 +19,28 @@ import {
   useTransposeSelection,
 } from "../../actions"
 import { songFromArrayBuffer } from "../../actions/file"
-import { useRedo, useUndo } from "../../actions/history"
 import {
   useCopySelectionGlobal,
   useCutSelectionGlobal,
   usePasteSelectionGlobal,
 } from "../../actions/hotkey"
+import { useAuth } from "../../hooks/useAuth"
 import { useCloudFile } from "../../hooks/useCloudFile"
+import { useExport } from "../../hooks/useExport"
+import { useHistory } from "../../hooks/useHistory"
+import { usePianoRoll } from "../../hooks/usePianoRoll"
+import { useRootView } from "../../hooks/useRootView"
+import { useSong } from "../../hooks/useSong"
 import { useSongFile } from "../../hooks/useSongFile"
-import { useStores } from "../../hooks/useStores"
 import { useLocalization } from "../../localize/useLocalization"
 import { songToMidi } from "../../midi/midiConversion"
 import { ElectronCallback } from "./ElectronCallback"
 
-export const ElectronCallbackHandler: FC = observer(() => {
-  const {
-    songStore: { song },
-    authStore: { isLoggedIn },
-    rootViewStore,
-    pianoRollStore,
-  } = useStores()
+export const ElectronCallbackHandler: FC = () => {
+  const { isSaved, filepath, getSong, setSaved, setFilepath } = useSong()
+  const { isLoggedIn } = useAuth()
+  const { setOpenSettingDialog, setOpenHelpDialog } = useRootView()
+  const { setOpenTransposeDialog, setOpenVelocityDialog } = usePianoRoll()
   const localized = useLocalization()
   const localSongFile = useSongFile()
   const cloudSongFile = useCloudFile()
@@ -55,10 +55,9 @@ export const ElectronCallbackHandler: FC = observer(() => {
   const selectPreviousNote = useSelectPreviousNote()
   const quantizeSelectedNotes = useQuantizeSelectedNotes()
   const transposeSelection = useTransposeSelection()
-  const undo = useUndo()
-  const redo = useRedo()
+  const { undo, redo } = useHistory()
   const setSong = useSetSong()
-  const exportSong = useExportSong()
+  const { exportSong } = useExport()
 
   const saveFileAs = async () => {
     try {
@@ -67,9 +66,9 @@ export const ElectronCallbackHandler: FC = observer(() => {
         return // canceled
       }
       const { path } = res
-      const data = songToMidi(song).buffer
-      song.filepath = path
-      song.isSaved = true
+      const data = songToMidi(getSong()).buffer
+      setFilepath(path)
+      setSaved(true)
       await window.electronAPI.saveFile(path, data)
       window.electronAPI.addRecentDocument(path)
     } catch (e) {
@@ -91,7 +90,7 @@ export const ElectronCallbackHandler: FC = observer(() => {
           await cloudSongFile.openSong()
         } else {
           try {
-            if (song.isSaved || confirm(localized["confirm-open"])) {
+            if (isSaved || confirm(localized["confirm-open"])) {
               const res = await window.electronAPI.showOpenDialog()
               if (res === null) {
                 return // canceled
@@ -108,7 +107,7 @@ export const ElectronCallbackHandler: FC = observer(() => {
       }}
       onOpenFile={async ({ filePath }) => {
         try {
-          if (song.isSaved || confirm(localized["confirm-open"])) {
+          if (isSaved || confirm(localized["confirm-open"])) {
             const data = await window.electronAPI.readFile(filePath)
             const song = songFromArrayBuffer(data, filePath)
             setSong(song)
@@ -123,10 +122,10 @@ export const ElectronCallbackHandler: FC = observer(() => {
           await cloudSongFile.saveSong()
         } else {
           try {
-            if (song.filepath) {
-              const data = songToMidi(song).buffer
-              await window.electronAPI.saveFile(song.filepath, data)
-              song.isSaved = true
+            if (filepath) {
+              const data = songToMidi(getSong()).buffer
+              await window.electronAPI.saveFile(filepath, data)
+              setSaved(true)
             } else {
               await saveFileAs()
             }
@@ -167,17 +166,17 @@ export const ElectronCallbackHandler: FC = observer(() => {
       onTransposeUpOctave={() => transposeSelection(12)}
       onTransposeDownOctave={() => transposeSelection(-12)}
       onTranspose={() => {
-        pianoRollStore.openTransposeDialog = true
+        setOpenTransposeDialog(true)
       }}
       onQuantize={quantizeSelectedNotes}
       onVelocity={() => {
-        pianoRollStore.openVelocityDialog = true
+        setOpenVelocityDialog(true)
       }}
       onOpenSetting={() => {
-        rootViewStore.openSettingDialog = true
+        setOpenSettingDialog(true)
       }}
       onOpenHelp={() => {
-        rootViewStore.openHelp = true
+        setOpenHelpDialog(true)
       }}
       onBrowserSignInCompleted={async ({ credential: credentialJSON }) => {
         const credential = createCredential(credentialJSON)
@@ -189,7 +188,7 @@ export const ElectronCallbackHandler: FC = observer(() => {
       }}
     />
   )
-})
+}
 
 function createCredential(credential: FirebaseCredential) {
   switch (credential.providerId) {

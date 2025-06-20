@@ -1,29 +1,31 @@
-import { updateEventsInRange } from "../../../actions"
+import { useUpdateEventsInRange } from "../../../actions"
 import { Point } from "../../../entities/geometry/Point"
 import { TempoCoordTransform } from "../../../entities/transform/TempoCoordTransform"
 import { MouseGesture } from "../../../gesture/MouseGesture"
 import { bpmToUSecPerBeat } from "../../../helpers/bpm"
 import { getClientPos } from "../../../helpers/mouseEvent"
 import { observeDrag } from "../../../helpers/observeDrag"
-import { useStores } from "../../../hooks/useStores"
+import { useConductorTrack } from "../../../hooks/useConductorTrack"
+import { useHistory } from "../../../hooks/useHistory"
+import { useTempoEditor } from "../../../hooks/useTempoEditor"
 import { setTempoMidiEvent } from "../../../midi/MidiEvent"
 import { isSetTempoEvent } from "../../../track"
 
 export const usePencilGesture = (): MouseGesture<
   [Point, TempoCoordTransform]
 > => {
-  const {
-    song,
-    tempoEditorStore: { quantizer },
-    pushHistory,
-  } = useStores()
+  const { pushHistory } = useHistory()
+  const { quantizer } = useTempoEditor()
+  const { id: conductorTrackId, createOrUpdate } = useConductorTrack()
+  const updateEventsInRange = useUpdateEventsInRange(
+    conductorTrackId,
+    quantizer,
+    isSetTempoEvent,
+    (v) => setTempoMidiEvent(0, bpmToUSecPerBeat(v)),
+  )
+
   return {
     onMouseDown(e, startPoint, transform) {
-      const track = song.conductorTrack
-      if (track === undefined) {
-        return
-      }
-
       pushHistory()
 
       const startClientPos = getClientPos(e)
@@ -34,7 +36,7 @@ export const usePencilGesture = (): MouseGesture<
         ...setTempoMidiEvent(0, Math.round(bpm)),
         tick: quantizer.round(pos.tick),
       }
-      track.createOrUpdate(event)
+      createOrUpdate(event)
 
       let lastTick = pos.tick
       let lastValue = pos.bpm
@@ -50,9 +52,7 @@ export const usePencilGesture = (): MouseGesture<
           )
           const tick = transform.getTick(local.x)
 
-          updateEventsInRange(track, quantizer, isSetTempoEvent, (v) =>
-            setTempoMidiEvent(0, bpmToUSecPerBeat(v)),
-          )(lastValue, value, lastTick, tick)
+          updateEventsInRange(lastValue, value, lastTick, tick)
 
           lastTick = tick
           lastValue = value

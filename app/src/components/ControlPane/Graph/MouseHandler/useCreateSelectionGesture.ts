@@ -2,15 +2,16 @@ import { Point } from "../../../../entities/geometry/Point"
 import { ControlSelection } from "../../../../entities/selection/ControlSelection"
 import { ControlCoordTransform } from "../../../../entities/transform/ControlCoordTransform"
 import { observeDrag2 } from "../../../../helpers/observeDrag"
-import { useStores } from "../../../../hooks/useStores"
+import { useControlPane } from "../../../../hooks/useControlPane"
+import { usePianoRoll } from "../../../../hooks/usePianoRoll"
+import { usePlayer } from "../../../../hooks/usePlayer"
 
 export const useCreateSelectionGesture = () => {
-  const {
-    pianoRollStore,
-    controlStore,
-    controlStore: { quantizer },
-    player,
-  } = useStores()
+  const { setSelection: setPianoRollSelection, setSelectedNoteIds } =
+    usePianoRoll()
+  const { isPlaying, setPosition } = usePlayer()
+  const { setSelectedEventIds, setSelection, quantizer } = useControlPane()
+  let { selection } = useControlPane()
 
   return {
     onMouseDown(
@@ -21,40 +22,38 @@ export const useCreateSelectionGesture = () => {
         selection: ControlSelection,
       ) => number[],
     ) {
-      controlStore.selectedEventIds = []
+      setSelectedEventIds([])
 
       const startTick = quantizer.round(controlTransform.getTick(startPoint.x))
 
-      pianoRollStore.selection = null
-      pianoRollStore.selectedNoteIds = []
+      setPianoRollSelection(null)
+      setSelectedNoteIds([])
 
-      if (!player.isPlaying) {
-        player.position = startTick
+      if (!isPlaying) {
+        setPosition(startTick)
       }
 
-      controlStore.selection = {
+      selection = {
         fromTick: startTick,
         toTick: startTick,
       }
+      setSelection(selection)
 
       observeDrag2(e, {
         onMouseMove: (_e, delta) => {
           const local = Point.add(startPoint, delta)
           const endTick = quantizer.round(controlTransform.getTick(local.x))
-          controlStore.selection = {
+          selection = {
             fromTick: Math.min(startTick, endTick),
             toTick: Math.max(startTick, endTick),
           }
+          setSelection(selection)
         },
         onMouseUp: () => {
-          const { selection } = controlStore
-          if (selection === null) {
-            return
-          }
-
-          controlStore.selectedEventIds =
-            getControllerEventIdsInSelection(selection)
-          controlStore.selection = null
+          setSelectedEventIds(
+            selection ? getControllerEventIdsInSelection(selection) : [],
+          )
+          setSelection(null)
         },
       })
     },

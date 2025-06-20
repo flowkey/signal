@@ -1,16 +1,15 @@
-import { observer } from "mobx-react-lite"
 import { useEffect } from "react"
 import { isRunningInElectron } from "../../helpers/platform"
-import { useStores } from "../../hooks/useStores"
+import { useSong } from "../../hooks/useSong"
 import { useLocalization } from "../../localize/useLocalization"
 
-export const OnBeforeUnload = observer(() => {
-  const { songStore } = useStores()
+export const OnBeforeUnload = () => {
+  const { getSong } = useSong()
   const localized = useLocalization()
 
   useEffect(() => {
     const listener = (e: BeforeUnloadEvent) => {
-      if (!songStore.song.isSaved) {
+      if (!getSong().isSaved) {
         const message = localized["confirm-close"]
         if (isRunningInElectron()) {
           // do not close the window immediately
@@ -39,4 +38,4 @@ export const OnBeforeUnload = observer(() => {
     }
   }, [])
   return <></>
-})
+}

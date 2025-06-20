@@ -1,10 +1,10 @@
 import { useTheme } from "@emotion/react"
 import styled from "@emotion/styled"
 import useComponentSize from "@rehooks/component-size"
-import { observer } from "mobx-react-lite"
 import { FC, useCallback, useEffect, useRef } from "react"
 import { Layout } from "../../Constants"
-import { useStores } from "../../hooks/useStores"
+import { useTempoEditor } from "../../hooks/useTempoEditor"
+import { useTickScroll } from "../../hooks/useTickScroll"
 import CanvasPianoRuler from "../PianoRoll/CanvasPianoRuler"
 import { BAR_WIDTH, HorizontalScrollBar } from "../inputs/ScrollBar"
 import { TempoGraphAxis } from "./TempoGraphAxis"
@@ -13,23 +13,30 @@ import { TempoGraphCanvas } from "./TempoGraphCanvas/TempoGraphCanvas"
 const Wrapper = styled.div`
   position: relative;
   flex-grow: 1;
-  background: ${({ theme }) => theme.backgroundColor};
-  color: ${({ theme }) => theme.secondaryTextColor};
+  background: var(--color-background);
+  color: var(--color-text-secondary);
 `
 
-export const TempoGraph: FC = observer(() => {
+export const TempoGraph: FC = () => {
+  const { transform, setCanvasHeight } = useTempoEditor()
   const {
-    tempoEditorStore,
-    tempoEditorStore: { transform, scrollLeft: _scrollLeft, contentWidth },
-  } = useStores()
+    contentWidth,
+    scrollLeft: _scrollLeft,
+    setCanvasWidth,
+    setScrollLeftInPixels,
+    setAutoScroll,
+  } = useTickScroll()
 
   const ref = useRef(null)
   const size = useComponentSize(ref)
 
-  const setScrollLeft = useCallback((x: number) => {
-    tempoEditorStore.setScrollLeftInPixels(x)
-    tempoEditorStore.autoScroll = false
-  }, [])
+  const setScrollLeft = useCallback(
+    (x: number) => {
+      setScrollLeftInPixels(x)
+      setAutoScroll(false)
+    },
+    [setScrollLeftInPixels, setAutoScroll],
+  )
   const theme = useTheme()
 
   const scrollLeft = Math.floor(_scrollLeft)
@@ -40,14 +47,13 @@ export const TempoGraph: FC = observer(() => {
   const contentHeight = containerHeight - Layout.rulerHeight - BAR_WIDTH
 
   useEffect(() => {
-    tempoEditorStore.canvasWidth = containerWidth
-    tempoEditorStore.canvasHeight = contentHeight
+    setCanvasWidth(containerWidth)
+    setCanvasHeight(contentHeight)
   }, [containerWidth, contentHeight])
 
   return (
     <Wrapper ref={ref}>
       <CanvasPianoRuler
-        rulerStore={tempoEditorStore.rulerStore}
         style={{
           background: theme.backgroundColor,
           borderBottom: `1px solid ${theme.dividerColor}`,
@@ -78,4 +84,4 @@ export const TempoGraph: FC = observer(() => {
       />
     </Wrapper>
   )
-})
+}

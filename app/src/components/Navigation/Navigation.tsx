@@ -2,10 +2,10 @@ import styled from "@emotion/styled"
 import Forum from "mdi-react/ForumIcon"
 import Help from "mdi-react/HelpCircleIcon"
 import Settings from "mdi-react/SettingsIcon"
-import { observer } from "mobx-react-lite"
 import { CSSProperties, FC, useCallback } from "react"
 import { getPlatform, isRunningInElectron } from "../../helpers/platform"
-import { useStores } from "../../hooks/useStores"
+import { useRootView } from "../../hooks/useRootView"
+import { useRouter } from "../../hooks/useRouter"
 import ArrangeIcon from "../../images/icons/arrange.svg"
 import PianoIcon from "../../images/icons/piano.svg"
 import TempoIcon from "../../images/icons/tempo.svg"
@@ -19,7 +19,7 @@ import { UserButton } from "./UserButton"
 const Container = styled.div`
   display: flex;
   flex-direction: row;
-  background: ${({ theme }) => theme.darkBackgroundColor};
+  background: var(--color-background-dark);
   height: 3rem;
   flex-shrink: 0;
   -webkit-app-region: drag;
@@ -43,18 +43,18 @@ export const Tab = styled.div`
   padding: 0.5rem 1rem;
   font-size: 0.75rem;
   border-top: solid 0.1rem transparent;
-  color: ${({ theme }) => theme.secondaryTextColor};
+  color: var(--color-text-secondary);
   cursor: pointer;
   -webkit-app-region: none;
 
   &.active {
-    color: ${({ theme }) => theme.textColor};
-    background: ${({ theme }) => theme.backgroundColor};
-    border-top-color: ${({ theme }) => theme.themeColor};
+    color: var(--color-text);
+    background: var(--color-background);
+    border-top-color: var(--color-theme);
   }
 
   &:hover {
-    background: ${({ theme }) => theme.highlightColor};
+    background: var(--color-highlight);
   }
 
   a {
@@ -82,28 +82,29 @@ export const IconStyle: CSSProperties = {
   fill: "currentColor",
 }
 
-export const Navigation: FC = observer(() => {
-  const { rootViewStore, router } = useStores()
+export const Navigation: FC = () => {
+  const { setOpenSettingDialog, setOpenHelpDialog } = useRootView()
+  const { path, setPath } = useRouter()
 
   const onClickPianoRollTab = useCallback(() => {
-    router.path = "/track"
-  }, [router])
+    setPath("/track")
+  }, [setPath])
 
   const onClickArrangeTab = useCallback(() => {
-    router.path = "/arrange"
-  }, [router])
+    setPath("/arrange")
+  }, [setPath])
 
   const onClickTempoTab = useCallback(() => {
-    router.path = "/tempo"
-  }, [router])
+    setPath("/tempo")
+  }, [setPath])
 
   const onClickSettings = useCallback(() => {
-    rootViewStore.openSettingDialog = true
-  }, [rootViewStore])
+    setOpenSettingDialog(true)
+  }, [setOpenSettingDialog])
 
   const onClickHelp = useCallback(() => {
-    rootViewStore.openHelp = true
-  }, [rootViewStore])
+    setOpenHelpDialog(true)
+  }, [setOpenHelpDialog])
 
   return (
     <Container>
@@ -119,7 +120,7 @@ export const Navigation: FC = observer(() => {
         delayDuration={500}
       >
         <Tab
-          className={router.path === "/track" ? "active" : undefined}
+          className={path === "/track" ? "active" : undefined}
           onMouseDown={onClickPianoRollTab}
         >
           <PianoIcon style={IconStyle} viewBox="0 0 128 128" />
@@ -138,7 +139,7 @@ export const Navigation: FC = observer(() => {
         delayDuration={500}
       >
         <Tab
-          className={router.path === "/arrange" ? "active" : undefined}
+          className={path === "/arrange" ? "active" : undefined}
           onMouseDown={onClickArrangeTab}
         >
           <ArrangeIcon style={IconStyle} viewBox="0 0 128 128" />
@@ -157,7 +158,7 @@ export const Navigation: FC = observer(() => {
         delayDuration={500}
       >
         <Tab
-          className={router.path === "/tempo" ? "active" : undefined}
+          className={path === "/tempo" ? "active" : undefined}
           onMouseDown={onClickTempoTab}
         >
           <TempoIcon style={IconStyle} viewBox="0 0 128 128" />
@@ -203,4 +204,4 @@ export const Navigation: FC = observer(() => {
       <UserButton />
     </Container>
   )
-})
+}

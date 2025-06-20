@@ -1,18 +1,26 @@
 import { max, min } from "lodash"
+import { useCallback } from "react"
 import {
   PianoNotesClipboardData,
-  isPianoNotesClipboardData,
+  PianoNotesClipboardDataSchema,
 } from "../clipboard/clipboardTypes"
 import { Rect } from "../entities/geometry/Rect"
 import { Selection } from "../entities/selection/Selection"
 import { isNotUndefined } from "../helpers/array"
-import { tickToMillisec } from "../helpers/bpm"
-import { useStores } from "../hooks/useStores"
-import clipboard from "../services/Clipboard"
+import { useControlPane } from "../hooks/useControlPane"
+import { useHistory } from "../hooks/useHistory"
+import { usePianoRoll } from "../hooks/usePianoRoll"
+import { usePlayer } from "../hooks/usePlayer"
+import { usePreviewNote } from "../hooks/usePreviewNote"
+import { useSong } from "../hooks/useSong"
+import { useTrack } from "../hooks/useTrack"
+import { readClipboardData, writeClipboardData } from "../services/Clipboard"
 import { NoteEvent, TrackEvent, isNoteEvent } from "../track"
-import { useStartNote, useStopNote } from "./player"
 
-export function eventsInSelection(events: TrackEvent[], selection: Selection) {
+export function eventsInSelection(
+  events: readonly TrackEvent[],
+  selection: Selection,
+) {
   const selectionRect = {
     x: selection.fromTick,
     width: selection.toTick - selection.fromTick,
@@ -33,60 +41,59 @@ export function eventsInSelection(events: TrackEvent[], selection: Selection) {
 }
 
 export const useTransposeSelection = () => {
-  const {
-    song,
-    pianoRollStore,
-    pianoRollStore: { selectedTrackIndex, selection, selectedNoteIds },
-    pushHistory,
-  } = useStores()
+  const { transposeNotes } = useSong()
+  const { selectedTrackIndex, selection, selectedNoteIds, setSelection } =
+    usePianoRoll()
+  const { pushHistory } = useHistory()
+
   return (deltaPitch: number) => {
     pushHistory()
 
     if (selection !== null) {
       const s = Selection.moved(selection, 0, deltaPitch)
-      pianoRollStore.selection = s
+      setSelection(s)
     }
 
-    song.transposeNotes(deltaPitch, {
+    transposeNotes(deltaPitch, {
       [selectedTrackIndex]: selectedNoteIds,
     })
   }
 }
 
 export const useCloneSelection = () => {
-  const {
-    pianoRollStore,
-    pianoRollStore: { selection, selectedNoteIds, selectedTrack },
-  } = useStores()
+  const { selection, selectedNoteIds, selectedTrackId, setSelectedNoteIds } =
+    usePianoRoll()
+  const { getEventById, addEvents } = useTrack(selectedTrackId)
+
   return () => {
-    if (selectedTrack === undefined || selection === null) {
+    if (selection === null) {
       return
     }
 
     // 選択範囲内のノートをコピーした選択範囲を作成
     // Create a selection that copies notes within selection
     const notes = selectedNoteIds
-      .map((id) => selectedTrack.getEventById(id))
+      .map((id) => getEventById(id))
       .filter(isNotUndefined)
       .map((note) => ({
         ...note, // copy
       }))
-    selectedTrack.addEvents(notes)
-    pianoRollStore.selectedNoteIds = notes.map((e) => e.id)
+    addEvents(notes)
+    setSelectedNoteIds(notes.map((e) => e.id))
   }
 }
 
 export const useCopySelection = () => {
-  const {
-    pianoRollStore: { selection, selectedNoteIds, selectedTrack },
-  } = useStores()
-  return () => {
-    if (selectedTrack === undefined || selectedNoteIds.length === 0) {
+  const { selection, selectedNoteIds, selectedTrackId } = usePianoRoll()
+  const { getEventById } = useTrack(selectedTrackId)
+
+  return async () => {
+    if (selectedNoteIds.length === 0) {
       return
     }
 
     const selectedNotes = selectedNoteIds
-      .map((id) => selectedTrack.getEventById(id))
+      .map((id) => getEventById(id))
       .filter(isNotUndefined)
       .filter(isNoteEvent)
 
@@ -105,21 +112,23 @@ export const useCopySelection = () => {
       notes,
     }
 
-    clipboard.writeText(JSON.stringify(data))
+    await writeClipboardData(data)
   }
 }
 
 export const useDeleteSelection = () => {
   const {
-    pianoRollStore,
-    pianoRollStore: { selection, selectedNoteIds, selectedTrack },
-    pushHistory,
-  } = useStores()
+    selection,
+    selectedNoteIds,
+    selectedTrackId,
+    setSelection,
+    setSelectedNoteIds,
+  } = usePianoRoll()
+  const { removeEvents } = useTrack(selectedTrackId)
+  const { pushHistory } = useHistory()
+
   return () => {
-    if (
-      selectedTrack === undefined ||
-      (selectedNoteIds.length === 0 && selection === null)
-    ) {
+    if (selectedNoteIds.length === 0 && selection === null) {
       return
     }
 
@@ -127,54 +136,50 @@ export const useDeleteSelection = () => {
 
     // 選択範囲と選択されたノートを削除
     // Remove selected notes and selected notes
-    selectedTrack.removeEvents(selectedNoteIds)
-    pianoRollStore.selection = null
-    pianoRollStore.selectedNoteIds = []
+    removeEvents(selectedNoteIds)
+    setSelection(null)
+    setSelectedNoteIds([])
   }
 }
 
+// Paste notes copied to the current position
 export const usePasteSelection = () => {
-  const {
-    player: { position },
-    pianoRollStore: { selectedTrack },
-    pushHistory,
-  } = useStores()
-  return () => {
-    if (selectedTrack === undefined) {
-      return
-    }
-    // Paste notes copied to the current position
-    const text = clipboard.readText()
-    if (!text || text.length === 0) {
-      return
-    }
-    const obj = JSON.parse(text)
-    if (!isPianoNotesClipboardData(obj)) {
+  const { selectedTrackId } = usePianoRoll()
+  const { addEvents } = useTrack(selectedTrackId)
+  const { position } = usePlayer()
+  const { pushHistory } = useHistory()
+
+  return async (clipboardData?: any) => {
+    const obj = clipboardData ?? (await readClipboardData())
+    const { data } = PianoNotesClipboardDataSchema.safeParse(obj)
+
+    if (!data) {
       return
     }
 
     pushHistory()
 
-    const notes = obj.notes.map((note) => ({
+    const notes = data.notes.map((note) => ({
       ...note,
       tick: Math.max(0, note.tick + position),
     }))
-    selectedTrack.addEvents(notes)
+    addEvents(notes)
   }
 }
 
 export const useDuplicateSelection = () => {
   const {
-    pianoRollStore,
-    pianoRollStore: { selection, selectedNoteIds, selectedTrack },
-    pushHistory,
-  } = useStores()
+    selection,
+    selectedNoteIds,
+    selectedTrackId,
+    setSelection,
+    setSelectedNoteIds,
+  } = usePianoRoll()
+  const { getEventById, addEvents } = useTrack(selectedTrackId)
+  const { pushHistory } = useHistory()
+
   return () => {
-    if (
-      selectedTrack === undefined ||
-      selection === null ||
-      selectedNoteIds.length === 0
-    ) {
+    if (selection === null || selectedNoteIds.length === 0) {
       return
     }
 
@@ -184,7 +189,7 @@ export const useDuplicateSelection = () => {
     let deltaTick = selection.toTick - selection.fromTick
 
     const selectedNotes = selectedNoteIds
-      .map((id) => selectedTrack.getEventById(id))
+      .map((id) => getEventById(id))
       .filter(isNotUndefined)
       .filter(isNoteEvent)
 
@@ -200,24 +205,19 @@ export const useDuplicateSelection = () => {
     }))
 
     // select the created notes
-    const addedNotes = selectedTrack.addEvents(notes)
-    pianoRollStore.selection = Selection.moved(selection, deltaTick, 0)
-    pianoRollStore.selectedNoteIds = addedNotes.map((n) => n.id)
+    const addedNotes = addEvents(notes)
+    setSelection(Selection.moved(selection, deltaTick, 0))
+    setSelectedNoteIds(addedNotes?.map((n) => n.id) ?? [])
   }
 }
 
 export const useSelectNote = () => {
-  const {
-    pianoRollStore,
-    pianoRollStore: { selectedTrack },
-    controlStore,
-  } = useStores()
+  const { setSelectedNoteIds } = usePianoRoll()
+  const { setSelectedEventIds } = useControlPane()
+
   return (noteId: number) => {
-    if (selectedTrack === undefined) {
-      return
-    }
-    controlStore.selectedEventIds = []
-    pianoRollStore.selectedNoteIds = [noteId]
+    setSelectedEventIds([])
+    setSelectedNoteIds([noteId])
   }
 }
 
@@ -231,20 +231,17 @@ const sortedNotes = (notes: NoteEvent[]): NoteEvent[] =>
   })
 
 const useSelectNeighborNote = () => {
-  const {
-    pianoRollStore: { selectedTrack, selectedNoteIds },
-    song,
-  } = useStores()
+  const { selectedTrackId, selectedNoteIds } = usePianoRoll()
+  const { previewNoteOn } = usePreviewNote()
+  const { getEvents } = useTrack(selectedTrackId)
   const selectNote = useSelectNote()
-  const startNote = useStartNote()
-  const stopNote = useStopNote()
 
   return (deltaIndex: number) => {
-    if (selectedTrack === undefined || selectedNoteIds.length === 0) {
+    if (selectedNoteIds.length === 0) {
       return
     }
 
-    const allNotes = selectedTrack.events.filter(isNoteEvent)
+    const allNotes = getEvents().filter(isNoteEvent)
     const selectedNotes = sortedNotes(
       selectedNoteIds
         .map((id) => allNotes.find((n) => n.id === id))
@@ -253,25 +250,16 @@ const useSelectNeighborNote = () => {
     if (selectedNotes.length === 0) {
       return
     }
-    const channel = selectedTrack?.channel ?? 0
     const firstNote = sortedNotes(selectedNotes)[0]
     const notes = sortedNotes(allNotes)
     const currentIndex = notes.findIndex((n) => n.id === firstNote.id)
-    const currentNote = notes[currentIndex]
     const nextNote = notes[currentIndex + deltaIndex]
     if (nextNote === undefined) {
       return
     }
 
     selectNote(nextNote.id)
-
-    // Stop playing the current note, then play the new note.
-    stopNote({ ...currentNote, channel })
-    startNote({ ...nextNote, channel })
-    stopNote(
-      { ...nextNote, channel },
-      tickToMillisec(nextNote.duration, 120, song.timebase) / 1000,
-    )
+    previewNoteOn(nextNote.noteNumber, nextNote.duration)
   }
 }
 
@@ -287,22 +275,22 @@ export const useSelectPreviousNote = () => {
 
 export const useQuantizeSelectedNotes = () => {
   const {
-    pianoRollStore: {
-      selectedTrack,
-      selectedNoteIds,
-      enabledQuantizer: quantizer,
-    },
-    pushHistory,
-  } = useStores()
+    selectedTrackId,
+    selectedNoteIds,
+    enabledQuantizer: quantizer,
+  } = usePianoRoll()
+  const { getEventById, updateEvents } = useTrack(selectedTrackId)
+  const { pushHistory } = useHistory()
+
   return () => {
-    if (selectedTrack === undefined || selectedNoteIds.length === 0) {
+    if (selectedNoteIds.length === 0) {
       return
     }
 
     pushHistory()
 
     const notes = selectedNoteIds
-      .map((id) => selectedTrack.getEventById(id))
+      .map((id) => getEventById(id))
       .filter(isNotUndefined)
       .filter(isNoteEvent)
       .map((e) => ({
@@ -310,22 +298,21 @@ export const useQuantizeSelectedNotes = () => {
         tick: quantizer.round(e.tick),
       }))
 
-    selectedTrack.updateEvents(notes)
+    updateEvents(notes)
   }
 }
 
 export const useSelectAllNotes = () => {
-  const {
-    pianoRollStore,
-    pianoRollStore: { selectedTrack },
-    controlStore,
-  } = useStores()
-  return () => {
-    if (selectedTrack) {
-      pianoRollStore.selectedNoteIds = selectedTrack.events
+  const { selectedTrackId, setSelectedNoteIds } = usePianoRoll()
+  const { getEvents } = useTrack(selectedTrackId)
+  const { setSelectedEventIds } = useControlPane()
+
+  return useCallback(() => {
+    setSelectedNoteIds(
+      getEvents()
         .filter(isNoteEvent)
-        .map((note) => note.id)
-      controlStore.selectedEventIds = []
-    }
-  }
+        .map((note) => note.id),
+    )
+    setSelectedEventIds([])
+  }, [getEvents, setSelectedNoteIds, setSelectedEventIds])
 }

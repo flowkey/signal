@@ -1,30 +1,27 @@
-import { useSelectNote, useStartNote, useStopNote } from "../../../../actions"
+import { useSelectNote } from "../../../../actions"
 import { MouseGesture } from "../../../../gesture/MouseGesture"
-import { useStores } from "../../../../hooks/useStores"
+import { usePianoRoll } from "../../../../hooks/usePianoRoll"
+import { usePreviewNote } from "../../../../hooks/usePreviewNote"
+import { useTrack } from "../../../../hooks/useTrack"
 import { isNoteEvent } from "../../../../track"
 import { useMoveDraggableGesture } from "./useMoveDraggableGesture"
 
 const useDragNoteEdgeGesture =
   (edge: "left" | "right" | "center") => (): MouseGesture<[number]> => {
-    const {
-      pianoRollStore,
-      pianoRollStore: { selectedTrack, selectedNoteIds },
-    } = useStores()
+    const { selectedTrackId, selectedNoteIds, setLastNoteDuration } =
+      usePianoRoll()
+    const { channel, getEventById } = useTrack(selectedTrackId)
     const selectNote = useSelectNote()
-    const startNote = useStartNote()
-    const stopNote = useStopNote()
     const moveDraggableAction = useMoveDraggableGesture()
+    const { previewNoteOn, previewNoteOff } = usePreviewNote()
 
     return {
       onMouseDown(e, noteId) {
-        if (
-          selectedTrack === undefined ||
-          selectedTrack.channel === undefined
-        ) {
+        if (channel === undefined) {
           return
         }
 
-        const note = selectedTrack.getEventById(noteId)
+        const note = getEventById(noteId)
         if (note == undefined || !isNoteEvent(note)) {
           return
         }
@@ -35,11 +32,9 @@ const useDragNoteEdgeGesture =
           selectNote(noteId)
         }
 
-        const newSelectedNoteIds = pianoRollStore.selectedNoteIds
+        const newSelectedNoteIds = isSelected ? selectedNoteIds : [noteId]
 
-        const { channel } = selectedTrack
-        startNote({ ...note, channel })
-        let playingNoteNumber = note.noteNumber
+        previewNoteOn(note.noteNumber)
 
         moveDraggableAction.onMouseDown(
           e,
@@ -53,29 +48,21 @@ const useDragNoteEdgeGesture =
             })),
           {
             onChange(_e, { oldPosition, newPosition }) {
-              const newNote = selectedTrack.getEventById(noteId)
+              const newNote = getEventById(noteId)
               if (newNote == undefined || !isNoteEvent(newNote)) {
                 return
               }
               // save last note duration
               if (oldPosition.tick !== newPosition.tick) {
-                pianoRollStore.lastNoteDuration = newNote.duration
+                setLastNoteDuration(newNote.duration)
               }
-              if (
-                oldPosition.noteNumber !== newPosition.noteNumber &&
-                newNote.noteNumber !== playingNoteNumber
-              ) {
-                stopNote({ noteNumber: playingNoteNumber, channel })
-                startNote({
-                  noteNumber: newNote.noteNumber,
-                  channel,
-                  velocity: newNote.velocity,
-                })
-                playingNoteNumber = newNote.noteNumber
+              if (oldPosition.noteNumber !== newPosition.noteNumber) {
+                previewNoteOff()
+                previewNoteOn(newNote.noteNumber)
               }
             },
             onMouseUp() {
-              stopNote({ noteNumber: playingNoteNumber, channel })
+              previewNoteOff()
             },
             onClick(e) {
               if (!e.shiftKey) {

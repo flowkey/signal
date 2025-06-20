@@ -1,21 +1,16 @@
 import { MouseGesture } from "../../../../gesture/MouseGesture"
-import { useStores } from "../../../../hooks/useStores"
+import { usePianoRoll } from "../../../../hooks/usePianoRoll"
 
 export const useRemoveNoteFromSelectionGesture = (): MouseGesture<[number]> => {
-  const {
-    pianoRollStore,
-    pianoRollStore: { selectedTrack, selectedNoteIds },
-  } = useStores()
+  const { selectedNoteIds, setSelectedNoteIds } = usePianoRoll()
 
   return {
     onMouseDown(_e, noteId) {
-      if (selectedTrack === undefined || selectedNoteIds.length === 0) {
+      if (selectedNoteIds.length === 0) {
         return
       }
 
-      pianoRollStore.selectedNoteIds = selectedNoteIds.filter(
-        (id) => id !== noteId,
-      )
+      setSelectedNoteIds(selectedNoteIds.filter((id) => id !== noteId))
     },
   }
 }

@@ -1,10 +1,10 @@
 import styled from "@emotion/styled"
 import useComponentSize from "@rehooks/component-size"
 import DotsHorizontalIcon from "mdi-react/DotsHorizontalIcon"
-import { observer } from "mobx-react-lite"
-import React, { FC, useCallback, useRef } from "react"
+import React, { FC, useRef } from "react"
 import { Layout } from "../../Constants"
-import { useStores } from "../../hooks/useStores"
+import { useControlPane } from "../../hooks/useControlPane"
+import { useRootView } from "../../hooks/useRootView"
 import { ControlMode, isEqualControlMode } from "../../stores/ControlStore"
 import { ControlName } from "./ControlName"
 import { ValueEventGraph } from "./Graph/ValueEventGraph"
@@ -19,7 +19,7 @@ const TabButtonBase = styled.div`
   background: transparent;
   -webkit-appearance: none;
   padding: 0.5em 0.8em;
-  color: ${({ theme }) => theme.secondaryTextColor};
+  color: var(--color-text-secondary);
   outline: none;
   font-size: 0.75rem;
   cursor: default;
@@ -29,18 +29,21 @@ const TabButtonBase = styled.div`
   flex-shrink: 0;
 
   &:hover {
-    background: ${({ theme }) => theme.highlightColor};
+    background: var(--color-highlight);
   }
 `
 
-const TabButton = styled(TabButtonBase)<{ selected: boolean }>`
-  width: 8em;
+const TabButton = styled(TabButtonBase)`
+  width: 7rem;
   overflow: hidden;
   border-bottom: 1px solid;
-  border-color: ${({ theme, selected }) =>
-    selected ? theme.themeColor : "transparent"};
-  color: ${({ theme, selected }) =>
-    selected ? theme.textColor : theme.secondaryTextColor};
+  border-color: transparent;
+  color: var(--color-text-secondary);
+
+  &[data-selected="true"] {
+    border-color: var(--color-theme);
+    color: var(--color-text);
+  }
 `
 
 const NoWrap = styled.span`
@@ -52,7 +55,7 @@ const NoWrap = styled.span`
 const Toolbar = styled.div`
   box-sizing: border-box;
   display: flex;
-  margin-left: ${Layout.keyWidth}px;
+  margin-left: var(--size-key-width);
   height: 2rem;
   flex-shrink: 0;
   overflow-x: auto;
@@ -62,40 +65,36 @@ const Toolbar = styled.div`
   }
 `
 
-const TabBar: FC<TabBarProps> = React.memo(
-  observer(({ onSelect, selectedMode }) => {
-    const { controlStore, rootViewStore } = useStores()
-    const { controlModes } = controlStore
+const TabBar: FC<TabBarProps> = React.memo(({ onSelect, selectedMode }) => {
+  const { setOpenControlSettingDialog } = useRootView()
+  const { controlModes } = useControlPane()
 
-    return (
-      <Toolbar>
-        {controlModes.map((mode, i) => (
-          <TabButton
-            selected={isEqualControlMode(selectedMode, mode)}
-            onMouseDown={() => onSelect(mode)}
-            key={i}
-          >
-            <NoWrap>
-              <ControlName mode={mode} />
-            </NoWrap>
-          </TabButton>
-        ))}
-        <TabButtonBase
-          onClick={() => (rootViewStore.openControlSettingDialog = true)}
+  return (
+    <Toolbar>
+      {controlModes.map((mode, i) => (
+        <TabButton
+          data-selected={isEqualControlMode(selectedMode, mode)}
+          onMouseDown={() => onSelect(mode)}
+          key={i}
         >
-          <DotsHorizontalIcon style={{ width: "1rem" }} />
-        </TabButtonBase>
-      </Toolbar>
-    )
-  }),
-)
+          <NoWrap>
+            <ControlName mode={mode} />
+          </NoWrap>
+        </TabButton>
+      ))}
+      <TabButtonBase onClick={() => setOpenControlSettingDialog(true)}>
+        <DotsHorizontalIcon style={{ width: "1rem" }} />
+      </TabButtonBase>
+    </Toolbar>
+  )
+})
 
 const Parent = styled.div`
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: ${({ theme }) => theme.darkBackgroundColor};
+  background: var(--color-background-dark);
 `
 
 const Content = styled.div`
@@ -113,16 +112,10 @@ const Content = styled.div`
 const TAB_HEIGHT = 30
 const BORDER_WIDTH = 1
 
-const ControlPane: FC = observer(() => {
+const ControlPane: FC = () => {
   const ref = useRef(null)
   const containerSize = useComponentSize(ref)
-  const { controlStore } = useStores()
-  const { controlMode: mode } = controlStore
-
-  const onSelectTab = useCallback(
-    (m: ControlMode) => (controlStore.controlMode = m),
-    [],
-  )
+  const { controlMode: mode, setControlMode } = useControlPane()
 
   const controlSize = {
     width: containerSize.width - Layout.keyWidth - BORDER_WIDTH,
@@ -140,10 +133,10 @@ const ControlPane: FC = observer(() => {
 
   return (
     <Parent ref={ref}>
-      <TabBar onSelect={onSelectTab} selectedMode={mode} />
+      <TabBar onSelect={setControlMode} selectedMode={mode} />
       <Content>{control}</Content>
     </Parent>
   )
-})
+}
 
 export default ControlPane

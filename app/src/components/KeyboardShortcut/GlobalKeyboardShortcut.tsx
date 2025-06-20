@@ -1,5 +1,4 @@
 import { useToast } from "dialog-hooks"
-import { observer } from "mobx-react-lite"
 import { FC, useEffect } from "react"
 import {
   useFastForwardOneBar,
@@ -14,15 +13,21 @@ import {
   useToggleSolo,
 } from "../../actions"
 import { hasFSAccess } from "../../actions/file"
-import { useRedo, useUndo } from "../../actions/history"
+import { useHistory } from "../../hooks/useHistory"
+import { usePlayer } from "../../hooks/usePlayer"
+import { useRootView } from "../../hooks/useRootView"
+import { useRouter } from "../../hooks/useRouter"
+import { useSong } from "../../hooks/useSong"
 import { useSongFile } from "../../hooks/useSongFile"
-import { useStores } from "../../hooks/useStores"
 import { useLocalization } from "../../localize/useLocalization"
 import { FileInput } from "../Navigation/LegacyFileMenu"
 import { KeyboardShortcut } from "./KeyboardShortcut"
 
-export const GlobalKeyboardShortcut: FC = observer(() => {
-  const { rootViewStore, router, player, song } = useStores()
+export const GlobalKeyboardShortcut: FC = () => {
+  const { setOpenHelpDialog } = useRootView()
+  const { setPath } = useRouter()
+  const { playOrPause } = usePlayer()
+  const { isSaved } = useSong()
   const rewindOneBar = useRewindOneBar()
   const fastForwardOneBar = useFastForwardOneBar()
   const stop = useStop()
@@ -32,8 +37,7 @@ export const GlobalKeyboardShortcut: FC = observer(() => {
   const toggleMute = useToggleMute()
   const toggleGhost = useToggleGhost()
   const toggleRecording = useToggleRecording()
-  const undo = useUndo()
-  const redo = useRedo()
+  const { undo, redo } = useHistory()
   const openSongFile = useOpenSong()
   const { createNewSong, openSong, saveSong, saveAsSong, downloadSong } =
     useSongFile()
@@ -42,7 +46,7 @@ export const GlobalKeyboardShortcut: FC = observer(() => {
   const toast = useToast()
 
   const openLegacy = async () => {
-    if (song.isSaved || confirm(localized["confirm-open"])) {
+    if (isSaved || confirm(localized["confirm-open"])) {
       document.getElementById(LegacyOpenId)?.click()
     }
   }
@@ -86,12 +90,12 @@ export const GlobalKeyboardShortcut: FC = observer(() => {
             toast.error((e as Error).message)
           }
         }}
-        accept="audio/midi"
+        accept=".mid,audio/midi"
       ></FileInput>
       <KeyboardShortcut
         actions={[
           // Play/Pause (Space)
-          { code: "Space", run: () => player.playOrPause() },
+          { code: "Space", run: playOrPause },
           // Undo (Meta-Z)
           {
             code: "KeyZ",
@@ -111,7 +115,7 @@ export const GlobalKeyboardShortcut: FC = observer(() => {
           {
             code: "Slash",
             shiftKey: true,
-            run: () => (rootViewStore.openHelp = true),
+            run: () => setOpenHelpDialog(true),
           },
           // Stop (Enter)
           { code: "Enter", run: stop },
@@ -135,19 +139,19 @@ export const GlobalKeyboardShortcut: FC = observer(() => {
           {
             code: "Digit1",
             metaKey: true,
-            run: () => (router.path = "/track"),
+            run: () => setPath("/track"),
           },
           // Switch to arrange roll (Meta-2)
           {
             code: "Digit2",
             metaKey: true,
-            run: () => (router.path = "/arrange"),
+            run: () => setPath("/arrange"),
           },
           // Switch to tempo roll (Meta-3)
           {
             code: "Digit3",
             metaKey: true,
-            run: () => (router.path = "/tempo"),
+            run: () => setPath("/tempo"),
           },
           // Save (Meta-S)
           {
@@ -203,4 +207,4 @@ export const GlobalKeyboardShortcut: FC = observer(() => {
       />
     </>
   )
-})
+}

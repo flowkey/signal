@@ -1,6 +1,5 @@
 import styled from "@emotion/styled"
 import { FC } from "react"
-import { Layout } from "../../Constants"
 import { TickTransform } from "../../entities/transform/TickTransform"
 import { TrackEvent } from "../../track"
 import { ControlMark, DisplayEvent } from "./ControlMark"
@@ -55,15 +54,15 @@ function isDisplayControlEvent(e: TrackEvent): e is DisplayEvent {
 
 export interface PianoControlEventsProps {
   width: number
-  events: TrackEvent[]
+  events: readonly TrackEvent[]
   scrollLeft: number
   transform: TickTransform
   onDoubleClickMark: (group: DisplayEvent[]) => void
 }
 
 const Container = styled.div`
-  margin-left: ${Layout.keyWidth}px;
-  margin-top: ${Layout.rulerHeight}px;
+  margin-left: var(--size-key-width) px;
+  margin-top: var(--size-ruler-height) px;
   position: absolute;
 
   .content {

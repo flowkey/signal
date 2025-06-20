@@ -1,34 +1,38 @@
 import { useCreateEvent, useUpdateValueEvents } from "../../../../actions"
-import { usePushHistory } from "../../../../actions/history"
 import { ValueEventType } from "../../../../entities/event/ValueEventType"
 import { Point } from "../../../../entities/geometry/Point"
 import { ControlCoordTransform } from "../../../../entities/transform/ControlCoordTransform"
 import { MouseGesture } from "../../../../gesture/MouseGesture"
 import { getClientPos } from "../../../../helpers/mouseEvent"
 import { observeDrag } from "../../../../helpers/observeDrag"
-import { useStores } from "../../../../hooks/useStores"
+import { useControlPane } from "../../../../hooks/useControlPane"
+import { useHistory } from "../../../../hooks/useHistory"
+import { usePianoRoll } from "../../../../hooks/usePianoRoll"
 
-export const usePencilGesture = (): MouseGesture<
-  [Point, ControlCoordTransform, ValueEventType]
-> => {
-  const { controlStore, pianoRollStore } = useStores()
+export const usePencilGesture = (
+  type: ValueEventType,
+): MouseGesture<[Point, ControlCoordTransform]> => {
+  const { setSelection: setPianoRollSelection, setSelectedNoteIds } =
+    usePianoRoll()
+  const { setSelectedEventIds, setSelection } = useControlPane()
   const createTrackEvent = useCreateEvent()
-  const updateValueEvents = useUpdateValueEvents()
-  const pushHistory = usePushHistory()
+  const { pushHistory } = useHistory()
+  const updateValueEvents = useUpdateValueEvents(type)
+  const eventFactory = ValueEventType.getEventFactory(type)
 
   return {
-    onMouseDown(e, startPoint, transform, type) {
+    onMouseDown(e, startPoint, transform) {
       pushHistory()
 
-      controlStore.selectedEventIds = []
-      controlStore.selection = null
-      pianoRollStore.selection = null
-      pianoRollStore.selectedNoteIds = []
+      setSelectedEventIds([])
+      setSelection(null)
+      setPianoRollSelection(null)
+      setSelectedNoteIds([])
 
       const startClientPos = getClientPos(e)
       const pos = transform.fromPosition(startPoint)
 
-      const event = ValueEventType.getEventFactory(type)(pos.value)
+      const event = eventFactory(pos.value)
       createTrackEvent(event, pos.tick)
 
       let lastTick = pos.tick
@@ -45,7 +49,7 @@ export const usePencilGesture = (): MouseGesture<
           )
           const tick = transform.getTick(local.x)
 
-          updateValueEvents(type)(lastValue, value, lastTick, tick)
+          updateValueEvents(lastValue, value, lastTick, tick)
 
           lastTick = tick
           lastValue = value

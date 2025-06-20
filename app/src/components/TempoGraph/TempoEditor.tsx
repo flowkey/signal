@@ -1,5 +1,6 @@
 import styled from "@emotion/styled"
 import { FC } from "react"
+import { TempoEditorScope } from "../../hooks/useTempoEditor"
 import { TempoEditorKeyboardShortcut } from "../KeyboardShortcut/TempoEditorKeyboardShortcut"
 import { TempoGraphToolbar } from "../TempoGraphToolbar/TempoGraphToolbar"
 import { TempoGraph } from "./TempoGraph"
@@ -13,10 +14,12 @@ const Container = styled.div`
 
 export const TempoEditor: FC = () => {
   return (
-    <Container>
-      <TempoEditorKeyboardShortcut />
-      <TempoGraphToolbar />
-      <TempoGraph />
-    </Container>
+    <TempoEditorScope>
+      <Container>
+        <TempoEditorKeyboardShortcut />
+        <TempoGraphToolbar />
+        <TempoGraph />
+      </Container>
+    </TempoEditorScope>
   )
 }

@@ -1,52 +1,43 @@
-import { useTheme } from "@emotion/react"
-import Color from "color"
-import { observer } from "mobx-react-lite"
+import { GLFallback } from "@ryohey/webgl-react"
 import { FC } from "react"
-import { colorToVec4, enhanceContrast } from "../../../gl/color"
-import { useStores } from "../../../hooks/useStores"
-import { trackColorToCSSColor } from "../../../track/TrackColor"
+import { useNoteColor } from "../../../hooks/useNoteColor"
+import { usePianoRoll } from "../../../hooks/usePianoRoll"
+import { useTrack } from "../../../hooks/useTrack"
 import { NoteCircles } from "./NoteCircles"
 import { NoteRectangles } from "./NoteRectangles"
+import { LegacyNotes } from "./lagacy/LegacyNotes"
 
-export const Notes: FC<{ zIndex: number }> = observer(({ zIndex }) => {
-  const {
-    pianoRollStore: { notes, selectedTrack },
-  } = useStores()
-  const theme = useTheme()
+export interface NotesProps {
+  zIndex: number
+}
 
-  if (selectedTrack === undefined) {
-    return <></>
-  }
+export const Notes: FC<NotesProps> = (props) => {
+  return <GLFallback component={_Notes} fallback={LegacyNotes} {...props} />
+}
 
-  const baseColor = Color(
-    selectedTrack.color !== undefined
-      ? trackColorToCSSColor(selectedTrack.color)
-      : theme.themeColor,
-  )
-  const borderColor = colorToVec4(
-    enhanceContrast(baseColor, theme.isLightContent, 0.3),
-  )
-  const selectedColor = colorToVec4(baseColor.lighten(0.7))
-  const backgroundColor = colorToVec4(Color(theme.backgroundColor))
-  const baseColorVec4 = colorToVec4(baseColor)
+const _Notes: FC<{ zIndex: number }> = ({ zIndex }) => {
+  const { notes, selectedTrackId } = usePianoRoll()
+  const { isRhythmTrack } = useTrack(selectedTrackId)
+  const { borderColor, inactiveColor, activeColor, selectedColor } =
+    useNoteColor()
 
   return (
     <>
-      {selectedTrack.isRhythmTrack && (
+      {isRhythmTrack && (
         <NoteCircles
           strokeColor={borderColor}
           rects={notes}
-          inactiveColor={backgroundColor}
-          activeColor={baseColorVec4}
+          inactiveColor={inactiveColor}
+          activeColor={activeColor}
           selectedColor={selectedColor}
           zIndex={zIndex}
         />
       )}
-      {!selectedTrack.isRhythmTrack && (
+      {!isRhythmTrack && (
         <NoteRectangles
           strokeColor={borderColor}
-          inactiveColor={backgroundColor}
-          activeColor={baseColorVec4}
+          inactiveColor={inactiveColor}
+          activeColor={activeColor}
           selectedColor={selectedColor}
           rects={notes}
           zIndex={zIndex + 0.1}
@@ -54,4 +45,4 @@ export const Notes: FC<{ zIndex: number }> = observer(({ zIndex }) => {
       )}
     </>
   )
-})
+}

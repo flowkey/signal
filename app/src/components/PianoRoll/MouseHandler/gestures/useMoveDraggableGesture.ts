@@ -1,9 +1,12 @@
+import { transaction } from "mobx"
 import { Point } from "../../../../entities/geometry/Point"
 import { Range } from "../../../../entities/geometry/Range"
 import { NotePoint } from "../../../../entities/transform/NotePoint"
 import { MouseGesture } from "../../../../gesture/MouseGesture"
 import { observeDrag2 } from "../../../../helpers/observeDrag"
-import { useStores } from "../../../../hooks/useStores"
+import { useHistory } from "../../../../hooks/useHistory"
+import { usePianoRoll } from "../../../../hooks/usePianoRoll"
+import { usePianoRollDraggable } from "../../../../hooks/usePianoRollDraggable"
 import {
   DraggableArea,
   PianoRollDraggable,
@@ -38,15 +41,15 @@ const constraintToDraggableArea = (
 export const useMoveDraggableGesture = (): MouseGesture<
   [PianoRollDraggable, PianoRollDraggable[]?, MoveDraggableCallback?]
 > => {
-  const {
-    pianoRollStore,
-    pianoRollStore: { isQuantizeEnabled, transform, quantizer },
-    pushHistory,
-  } = useStores()
+  const { isQuantizeEnabled, transform, quantizer, getLocal } = usePianoRoll()
+  const { getDraggablePosition, getDraggableArea, updateDraggable } =
+    usePianoRollDraggable()
+
+  const { pushHistory } = useHistory()
 
   return {
     onMouseDown(e, draggable, subDraggables = [], callback = {}) {
-      const draggablePosition = pianoRollStore.getDraggablePosition(draggable)
+      const draggablePosition = getDraggablePosition(draggable)
 
       if (draggablePosition === null) {
         return
@@ -54,12 +57,12 @@ export const useMoveDraggableGesture = (): MouseGesture<
 
       let isChanged = false
 
-      const startPos = pianoRollStore.getLocal(e)
+      const startPos = getLocal(e)
       const notePoint = transform.getNotePoint(startPos)
       const offset = NotePoint.sub(draggablePosition, notePoint)
 
       const subDraggablePositions = subDraggables.map((subDraggable) =>
-        pianoRollStore.getDraggablePosition(subDraggable),
+        getDraggablePosition(subDraggable),
       )
 
       observeDrag2(e, {
@@ -67,16 +70,13 @@ export const useMoveDraggableGesture = (): MouseGesture<
           const quantize = !e2.shiftKey && isQuantizeEnabled
           const minLength = quantize ? quantizer.unit : MIN_LENGTH
 
-          const draggableArea = pianoRollStore.getDraggableArea(
-            draggable,
-            minLength,
-          )
+          const draggableArea = getDraggableArea(draggable, minLength)
 
           if (draggableArea === null) {
             return
           }
 
-          const currentPosition = pianoRollStore.getDraggablePosition(draggable)
+          const currentPosition = getDraggablePosition(draggable)
 
           if (currentPosition === null) {
             return
@@ -111,10 +111,7 @@ export const useMoveDraggableGesture = (): MouseGesture<
                 return null
               }
 
-              const subDraggableArea = pianoRollStore.getDraggableArea(
-                subDraggable,
-                minLength,
-              )
+              const subDraggableArea = getDraggableArea(subDraggable, minLength)
 
               if (subDraggableArea === null) {
                 return null
@@ -130,19 +127,21 @@ export const useMoveDraggableGesture = (): MouseGesture<
             pushHistory()
           }
 
-          pianoRollStore.updateDraggable(draggable, newPosition)
+          transaction(() => {
+            updateDraggable(draggable, newPosition)
 
-          subDraggables.forEach((subDraggable, i) => {
-            const subDraggablePosition = newSubDraggablePositions[i]
+            subDraggables.forEach((subDraggable, i) => {
+              const subDraggablePosition = newSubDraggablePositions[i]
 
-            if (
-              subDraggablePosition === null ||
-              subDraggablePosition === null
-            ) {
-              return
-            }
+              if (
+                subDraggablePosition === null ||
+                subDraggablePosition === null
+              ) {
+                return
+              }
 
-            pianoRollStore.updateDraggable(subDraggable, subDraggablePosition)
+              updateDraggable(subDraggable, subDraggablePosition)
+            })
           })
 
           callback?.onChange?.(e2, {

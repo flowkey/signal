@@ -1,23 +1,42 @@
 import { MouseEvent, useCallback } from "react"
-import {
-  useArrangeEndSelection,
-  useArrangeResizeSelection,
-} from "../../actions"
-import { Point } from "../../entities/geometry/Point"
-import { ArrangePoint } from "../../entities/transform/ArrangePoint"
+import { getEventsInSelection } from "../../actions/arrangeView"
+import { Range } from "../../entities/geometry/Range"
+import { ArrangeSelection } from "../../entities/selection/ArrangeSelection"
 import { MouseGesture } from "../../gesture/MouseGesture"
-import { getClientPos } from "../../helpers/mouseEvent"
 import { observeDrag } from "../../helpers/observeDrag"
-import { useStores } from "../../hooks/useStores"
+import { useArrangeView } from "../../hooks/useArrangeView"
+import { useSong } from "../../hooks/useSong"
+import { useTickScroll } from "../../hooks/useTickScroll"
 
 export const useRulerSelectionGesture = (): MouseGesture<[], MouseEvent> => {
   const {
-    arrangeViewStore,
-    song: { tracks },
-  } = useStores()
+    trackTransform,
+    resetSelection,
+    quantizer,
+    setSelection,
+    setSelectedEventIds,
+  } = useArrangeView()
+  const { tracks } = useSong()
+  const { transform, scrollLeft } = useTickScroll()
 
-  const arrangeResizeSelection = useArrangeResizeSelection()
-  const arrangeEndSelection = useArrangeEndSelection()
+  const selectionFromTickRange = useCallback(
+    (range: Range) =>
+      ArrangeSelection.fromPoints(
+        {
+          tick: range[0],
+          trackIndex: 0,
+        },
+        {
+          tick: range[1],
+          trackIndex: tracks.length,
+        },
+        quantizer,
+        tracks.length,
+      ),
+    [quantizer, tracks.length],
+  )
+
+  let selection: ArrangeSelection | null = null
 
   const onMouseDown = useCallback(
     (e: MouseEvent) => {
@@ -25,36 +44,35 @@ export const useRulerSelectionGesture = (): MouseGesture<[], MouseEvent> => {
         return
       }
 
-      const { scrollLeft, scrollTop, trackTransform } = arrangeViewStore
+      const startPosX = e.nativeEvent.offsetX + scrollLeft
+      const startClientX = e.nativeEvent.clientX
+      const startTick = transform.getTick(startPosX)
 
-      const startPosPx: Point = {
-        x: e.nativeEvent.offsetX + scrollLeft,
-        y: e.nativeEvent.offsetY + scrollTop,
-      }
-      const startClientPos = getClientPos(e.nativeEvent)
-
-      const startPos: ArrangePoint = {
-        tick: trackTransform.getTick(startPosPx.x),
-        trackIndex: 0,
-      }
-      arrangeViewStore.resetSelection()
+      resetSelection()
 
       observeDrag({
         onMouseMove: (e) => {
-          const deltaPx = Point.sub(getClientPos(e), startClientPos)
-          const selectionToPx = Point.add(startPosPx, deltaPx)
-          const endPos = {
-            tick: trackTransform.getTick(selectionToPx.x),
-            trackIndex: tracks.length,
-          }
-          arrangeResizeSelection(startPos, endPos)
+          const deltaPx = e.clientX - startClientX
+          const selectionToPx = startPosX + deltaPx
+          const endTick = transform.getTick(selectionToPx)
+          selection = selectionFromTickRange([startTick, endTick])
+          setSelection(selection)
         },
         onMouseUp: () => {
-          arrangeEndSelection()
+          if (selection !== null) {
+            setSelectedEventIds(getEventsInSelection(tracks, selection))
+          }
         },
       })
     },
-    [arrangeViewStore, arrangeResizeSelection, arrangeEndSelection, tracks],
+    [
+      scrollLeft,
+      transform,
+      trackTransform,
+      selectionFromTickRange,
+      tracks,
+      resetSelection,
+    ],
   )
 
   return {

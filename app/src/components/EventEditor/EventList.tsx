@@ -1,10 +1,9 @@
 import styled from "@emotion/styled"
 import useComponentSize from "@rehooks/component-size"
-import { observer } from "mobx-react-lite"
-import React, { FC, useCallback, useMemo, useRef } from "react"
+import React, { FC, useCallback, useRef } from "react"
 import { FixedSizeList, ListChildComponentProps } from "react-window"
 import { Layout } from "../../Constants"
-import { useStores } from "../../hooks/useStores"
+import { useEventList } from "../../hooks/useEventList"
 import { Localized } from "../../localize/useLocalization"
 import { TrackEvent } from "../../track"
 import { EventListItem } from "./EventListItem"
@@ -15,8 +14,8 @@ const Container = styled.div`
 `
 
 const Header = styled.div`
-  height: ${Layout.rulerHeight};
-  border-bottom: 1px solid ${({ theme }) => theme.dividerColor};
+  height: var(--size-ruler-height);
+  border-bottom: 1px solid var(--color-divider);
   /* scroll bar width */
   padding-right: 14px;
 `
@@ -27,7 +26,7 @@ export const Row = styled.div`
   grid-template-columns: 5em 1fr 5em 5em;
 
   &:focus {
-    background: ${({ theme }) => theme.highlightColor};
+    background: var(--color-highlight);
   }
 `
 
@@ -35,23 +34,12 @@ export const Cell = styled.div`
   padding: 0.5rem;
 
   &:focus-within {
-    background: ${({ theme }) => theme.highlightColor};
+    background: var(--color-highlight);
   }
 `
 
-const EventList: FC = observer(() => {
-  const {
-    pianoRollStore: { selectedTrack, selectedNoteIds: selectedEventIds = [] },
-  } = useStores()
-
-  const events = useMemo(() => {
-    const { events = [] } = selectedTrack || {}
-    if (selectedEventIds.length > 0) {
-      return events.filter((event) => selectedEventIds.indexOf(event.id) >= 0)
-    }
-    return events
-  }, [selectedTrack?.events, selectedEventIds])
-
+const EventList: FC = () => {
+  const { events } = useEventList()
   const ref = useRef<HTMLDivElement>(null)
   const size = useComponentSize(ref)
 
@@ -85,7 +73,7 @@ const EventList: FC = observer(() => {
       </FixedSizeList>
     </Container>
   )
-})
+}
 
 const ItemRenderer = ({ index, style, data }: ListChildComponentProps) => {
   const { events, setSelectedEventIds } = data

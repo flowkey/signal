@@ -1,9 +1,16 @@
 import { PlayerEvent } from "/imports/signal/packages/player/src"
-import { action, computed, makeObservable, observable, reaction } from "mobx"
+import {
+  action,
+  computed,
+  makeObservable,
+  observable,
+  reaction,
+  toJS,
+} from "mobx"
 import { createModelSchema, list, object, primitive } from "serializr"
 import { Measure } from "../entities/measure/Measure"
 import { NoteNumber } from "../entities/unit/NoteNumber"
-import { isNotNull, isNotUndefined } from "../helpers/array"
+import { isNotNull } from "../helpers/array"
 import { collectAllEvents } from "../player/collectAllEvents"
 import Track, { isNoteEvent, isTimeSignatureEvent, TrackId } from "../track"
 
@@ -11,7 +18,7 @@ const END_MARGIN = 480 * 30
 const DEFAULT_TIME_BASE = 480
 
 export default class Song {
-  tracks: Track[] = []
+  tracks: readonly Track[] = []
   filepath: string = ""
   timebase: number = DEFAULT_TIME_BASE
   name: string = ""
@@ -32,7 +39,7 @@ export default class Song {
       timeSignatures: computed,
       endOfSong: computed,
       allEvents: computed({ keepAlive: true }),
-      tracks: observable.shallow,
+      tracks: observable.ref,
       filepath: observable,
       timebase: observable,
       name: observable,
@@ -40,11 +47,16 @@ export default class Song {
     })
 
     reaction(
-      () => [
-        this.tracks.map((t) => ({ channel: t.channel, events: t.events })),
-        this.name,
-      ],
-      () => (this.isSaved = false)
+      () => {
+        return [
+          this.tracks.map((t) => ({
+            channel: t.channel,
+            events: toJS(t.events),
+          })),
+          this.name,
+        ]
+      },
+      () => (this.isSaved = false),
     )
   }
 
@@ -58,7 +70,9 @@ export default class Song {
       t.channel = t.channel || this.tracks.length - 1
     }
     t.id = this.generateTrackId()
-    this.tracks.splice(index, 0, t)
+    const tracks = [...this.tracks]
+    tracks.splice(index, 0, t)
+    this.tracks = tracks
   }
 
   addTrack(t: Track) {
@@ -70,8 +84,10 @@ export default class Song {
   }
 
   moveTrack(from: number, to: number) {
-    const [track] = this.tracks.splice(from, 1)
-    this.tracks.splice(to, 0, track)
+    const tracks = [...this.tracks]
+    const [track] = tracks.splice(from, 1)
+    tracks.splice(to, 0, track)
+    this.tracks = tracks
   }
 
   get conductorTrack(): Track | undefined {
@@ -99,10 +115,12 @@ export default class Song {
   }
 
   get endOfSong(): number {
-    const eos = Math.max(
-      ...this.tracks.map((t) => t.endOfTrack).filter(isNotUndefined)
-    )
+    const eos = Math.max(...this.tracks.map((t) => t.endOfTrack))
     return (eos ?? 0) + END_MARGIN
+  }
+
+  updateEndOfSong() {
+    this.tracks.forEach((t) => t.updateEndOfTrack())
   }
 
   get allEvents(): PlayerEvent[] {
@@ -142,7 +160,9 @@ export default class Song {
 
 createModelSchema(Song, {
   tracks: list(object(Track)),
+  name: primitive(),
   filepath: primitive(),
   timebase: primitive(),
   lastTrackId: primitive(),
+  isSaved: primitive(),
 })

@@ -1,16 +1,14 @@
-import { observer } from "mobx-react-lite"
 import { FC } from "react"
-import { useStores } from "../../hooks/useStores"
+import { useTickScroll } from "../../hooks/useTickScroll"
 import { AutoScrollButton } from "../Toolbar/AutoScrollButton"
 
-export const TempoGraphAutoScrollButton: FC = observer(() => {
-  const { tempoEditorStore } = useStores()
-  const { autoScroll } = tempoEditorStore
+export const TempoGraphAutoScrollButton: FC = () => {
+  const { setAutoScroll, autoScroll } = useTickScroll()
 
   return (
     <AutoScrollButton
-      onClick={() => (tempoEditorStore.autoScroll = !autoScroll)}
+      onClick={() => setAutoScroll(!autoScroll)}
       selected={autoScroll}
     />
   )
-})
+}

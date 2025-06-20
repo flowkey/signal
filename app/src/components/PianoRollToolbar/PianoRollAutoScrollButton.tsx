@@ -1,16 +1,14 @@
-import { observer } from "mobx-react-lite"
 import { FC, useCallback } from "react"
-import { useStores } from "../../hooks/useStores"
+import { useTickScroll } from "../../hooks/useTickScroll"
 import { AutoScrollButton } from "../Toolbar/AutoScrollButton"
 
-export const PianoRollAutoScrollButton: FC = observer(() => {
-  const { pianoRollStore } = useStores()
-  const { autoScroll } = pianoRollStore
+export const PianoRollAutoScrollButton: FC = () => {
+  const { autoScroll, setAutoScroll } = useTickScroll()
 
   const onClickAutoScroll = useCallback(
-    () => (pianoRollStore.autoScroll = !pianoRollStore.autoScroll),
-    [pianoRollStore],
+    () => setAutoScroll(!autoScroll),
+    [autoScroll, setAutoScroll],
   )
 
   return <AutoScrollButton onClick={onClickAutoScroll} selected={autoScroll} />
-})
+}

@@ -1,8 +1,6 @@
 import styled from "@emotion/styled"
-import { observer } from "mobx-react-lite"
-import { FC, useCallback } from "react"
-import { useSetTrackPan } from "../../actions"
-import { useStores } from "../../hooks/useStores"
+import { FC } from "react"
+import { usePanSlider } from "../../hooks/usePanSlider"
 import { Localized } from "../../localize/useLocalization"
 import { Slider } from "../ui/Slider"
 
@@ -19,21 +17,12 @@ const Label = styled.div`
   display: flex;
   align-items: center;
   margin-right: 0.5rem;
-  color: ${({ theme }) => theme.secondaryTextColor};
+  color: var(--color-text-secondary);
 `
 
-const PAN_CENTER = 64
-
-export const PanSlider: FC = observer(() => {
-  const {
-    pianoRollStore: { currentPan, selectedTrackId: trackId },
-  } = useStores()
-  const setTrackPan = useSetTrackPan()
-  const onChange = useCallback(
-    (value: number) => setTrackPan(trackId, value),
-    [setTrackPan, trackId],
-  )
-  const pan = currentPan ?? PAN_CENTER
+export const PanSlider: FC = () => {
+  const { value, setValue, defaultValue, onPointerDown, onPointerUp } =
+    usePanSlider()
 
   return (
     <Container>
@@ -41,15 +30,17 @@ export const PanSlider: FC = observer(() => {
         <Localized name="pan" />
       </Label>
       <Slider
-        value={pan}
-        onChange={(value) => onChange(value as number)}
-        onDoubleClick={() => onChange(PAN_CENTER)}
+        value={value}
+        onChange={setValue}
+        onDoubleClick={() => setValue(defaultValue)}
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
         min={0}
         max={127}
-        defaultValue={PAN_CENTER}
+        defaultValue={defaultValue}
         minStepsBetweenThumbs={1}
-        marks={[PAN_CENTER]}
+        marks={[defaultValue]}
       ></Slider>
     </Container>
   )
-})
+}

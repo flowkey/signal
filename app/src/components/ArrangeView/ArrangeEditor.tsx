@@ -1,5 +1,6 @@
 import styled from "@emotion/styled"
 import { FC } from "react"
+import { ArrangeViewScope } from "../../hooks/useArrangeView"
 import { ArrangeToolbar } from "../ArrangeToolbar/ArrangeToolbar"
 import { ArrangeViewKeyboardShortcut } from "../KeyboardShortcut/ArrangeViewKeyboardShortcut"
 import { ArrangeTransposeDialog } from "../TransposeDialog/ArrangeTransposeDialog"
@@ -16,7 +17,7 @@ const Container = styled.div`
 
 export const ArrangeEditor: FC = () => {
   return (
-    <>
+    <ArrangeViewScope>
       <Container>
         <ArrangeViewKeyboardShortcut />
         <ArrangeToolbar />
@@ -24,6 +25,6 @@ export const ArrangeEditor: FC = () => {
       </Container>
       <ArrangeTransposeDialog />
       <ArrangeVelocityDialog />
-    </>
+    </ArrangeViewScope>
   )
 }

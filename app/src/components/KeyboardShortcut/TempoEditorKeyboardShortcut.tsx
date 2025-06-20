@@ -1,4 +1,3 @@
-import { observer } from "mobx-react-lite"
 import { FC } from "react"
 import {
   useCopyTempoSelection,
@@ -7,14 +6,14 @@ import {
   usePasteTempoSelection,
   useResetTempoSelection,
 } from "../../actions/tempo"
-import { isTempoEventsClipboardData } from "../../clipboard/clipboardTypes"
-import { useStores } from "../../hooks/useStores"
-import clipboard from "../../services/Clipboard"
+import { TempoEventsClipboardDataSchema } from "../../clipboard/clipboardTypes"
+import { useTempoEditor } from "../../hooks/useTempoEditor"
+import { readClipboardData } from "../../services/Clipboard"
 import { KeyboardShortcut } from "./KeyboardShortcut"
 import { isFocusable } from "./isFocusable"
 
-export const TempoEditorKeyboardShortcut: FC = observer(() => {
-  const { tempoEditorStore } = useStores()
+export const TempoEditorKeyboardShortcut: FC = () => {
+  const { setMouseMode } = useTempoEditor()
   const resetTempoSelection = useResetTempoSelection()
   const deleteTempoSelection = useDeleteTempoSelection()
   const copyTempoSelection = useCopyTempoSelection()
@@ -26,11 +25,11 @@ export const TempoEditorKeyboardShortcut: FC = observer(() => {
       actions={[
         {
           code: "Digit1",
-          run: () => (tempoEditorStore.mouseMode = "pencil"),
+          run: () => setMouseMode("pencil"),
         },
         {
           code: "Digit2",
-          run: () => (tempoEditorStore.mouseMode = "selection"),
+          run: () => setMouseMode("selection"),
         },
         { code: "Escape", run: resetTempoSelection },
         { code: "Backspace", run: deleteTempoSelection },
@@ -56,23 +55,20 @@ export const TempoEditorKeyboardShortcut: FC = observer(() => {
           run: duplicateTempoSelection,
         },
       ]}
-      onPaste={(e) => {
+      onPaste={async (e) => {
         if (e.target !== null && isFocusable(e.target)) {
           return
         }
 
-        const text = clipboard.readText()
+        const obj = await readClipboardData()
+        const { data } = TempoEventsClipboardDataSchema.safeParse(obj)
 
-        if (!text || text.length === 0) {
+        if (!data) {
           return
         }
 
-        const obj = JSON.parse(text)
-
-        if (isTempoEventsClipboardData(obj)) {
-          pasteTempoSelection()
-        }
+        pasteTempoSelection()
       }}
     />
   )
-})
+}

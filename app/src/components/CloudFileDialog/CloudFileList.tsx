@@ -5,11 +5,11 @@ import { useToast } from "dialog-hooks"
 import ArrowDownward from "mdi-react/ArrowDownwardIcon"
 import ArrowDropDown from "mdi-react/ArrowDropDownIcon"
 import ArrowUpward from "mdi-react/ArrowUpwardIcon"
-import { observer } from "mobx-react-lite"
 import { FC, useEffect } from "react"
 import { useSetSong } from "../../actions"
 import { useLoadSong } from "../../actions/cloudSong"
-import { useStores } from "../../hooks/useStores"
+import { useCloudFile } from "../../hooks/useCloudFile"
+import { useRootView } from "../../hooks/useRootView"
 import { Localized, useLocalization } from "../../localize/useLocalization"
 import { CircularProgress } from "../ui/CircularProgress"
 import { IconButton } from "../ui/IconButton"
@@ -29,15 +29,17 @@ const ArrowDown = styled(ArrowDownward)`
 const HeaderCell = styled.div`
   display: flex;
   align-items: center;
-  background: ${({ theme }) => theme.backgroundColor};
-  font-weight: ${({ isSelected }: { isSelected?: boolean }) =>
-    isSelected ? "bold" : "normal"};
+  background: var(--color-background);
   cursor: pointer;
   padding: 0 1rem;
   box-sizing: border-box;
 
   &:hover {
-    background: ${({ theme }) => theme.secondaryBackgroundColor};
+    background: var(--color-background-secondary);
+  }
+
+  &[data-selected="true"] {
+    font-weight: bold;
   }
 `
 
@@ -58,7 +60,7 @@ const Body = styled.div`
   overflow-y: auto;
 
   tr:hover td {
-    background: ${({ theme }) => theme.secondaryBackgroundColor};
+    background: var(--color-background-secondary);
   }
 `
 
@@ -72,25 +74,34 @@ const Header = styled.div`
   height: 2.5rem;
 `
 
-export const CloudFileList = observer(() => {
-  const { cloudFileStore, rootViewStore } = useStores()
+export const CloudFileList = () => {
+  const {
+    isLoading,
+    dateType,
+    files,
+    selectedColumn,
+    sortAscending,
+    loadFiles,
+    setDateType,
+    setSelectedColumn,
+    setSortAscending,
+  } = useCloudFile()
+  const { setOpenCloudFileDialog } = useRootView()
   const setSong = useSetSong()
   const loadSong = useLoadSong()
   const toast = useToast()
   const theme = useTheme()
   const localized = useLocalization()
-  const { isLoading, dateType, files, selectedColumn, sortAscending } =
-    cloudFileStore
 
   useEffect(() => {
-    cloudFileStore.load()
+    loadFiles()
   }, [])
 
   const onClickSong = async (song: CloudSong) => {
     try {
       const midiSong = await loadSong(song)
       setSong(midiSong)
-      rootViewStore.openCloudFileDialog = false
+      setOpenCloudFileDialog(false)
     } catch (e) {
       toast.error((e as Error).message)
     }
@@ -118,13 +129,13 @@ export const CloudFileList = observer(() => {
       <Header>
         <NameCell
           onClick={() => {
-            if (cloudFileStore.selectedColumn === "name") {
-              cloudFileStore.sortAscending = !cloudFileStore.sortAscending
+            if (selectedColumn === "name") {
+              setSortAscending(!sortAscending)
             } else {
-              cloudFileStore.selectedColumn = "name"
+              setSelectedColumn("name")
             }
           }}
-          isSelected={selectedColumn === "name"}
+          data-selected={selectedColumn === "name"}
         >
           <Localized name="name" />
           <div style={{ width: "0.5rem" }}></div>
@@ -134,13 +145,13 @@ export const CloudFileList = observer(() => {
         </NameCell>
         <DateCell
           onClick={() => {
-            if (cloudFileStore.selectedColumn === "date") {
-              cloudFileStore.sortAscending = !cloudFileStore.sortAscending
+            if (selectedColumn === "date") {
+              setSortAscending(!sortAscending)
             } else {
-              cloudFileStore.selectedColumn = "date"
+              setSelectedColumn("date")
             }
           }}
-          isSelected={selectedColumn === "date"}
+          data-selected={selectedColumn === "date"}
         >
           {sortLabel}
           <Menu
@@ -154,10 +165,10 @@ export const CloudFileList = observer(() => {
               </IconButton>
             }
           >
-            <MenuItem onClick={() => (cloudFileStore.dateType = "created")}>
+            <MenuItem onClick={() => setDateType("created")}>
               <Localized name="created-date" />
             </MenuItem>
-            <MenuItem onClick={() => (cloudFileStore.dateType = "updated")}>
+            <MenuItem onClick={() => setDateType("updated")}>
               <Localized name="modified-date" />
             </MenuItem>
           </Menu>
@@ -179,4 +190,4 @@ export const CloudFileList = observer(() => {
       </Body>
     </Container>
   )
-})
+}

@@ -1,13 +1,13 @@
-import { observer } from "mobx-react-lite"
 import { FC } from "react"
 import { usePasteSelection, useSelectAllNotes } from "../../actions"
 import { usePasteControlSelection } from "../../actions/control"
 import {
-  isControlEventsClipboardData,
-  isPianoNotesClipboardData,
+  ControlEventsClipboardDataSchema,
+  PianoNotesClipboardDataSchema,
 } from "../../clipboard/clipboardTypes"
-import { useStores } from "../../hooks/useStores"
-import clipboard from "../../services/Clipboard"
+import { useControlPane } from "../../hooks/useControlPane"
+import { usePianoRoll } from "../../hooks/usePianoRoll"
+import { readClipboardData } from "../../services/Clipboard"
 import { KeyboardShortcut } from "./KeyboardShortcut"
 import { useControlPaneKeyboardShortcutActions } from "./controlPaneKeyboardShortcutActions"
 import { isFocusable } from "./isFocusable"
@@ -15,8 +15,9 @@ import { usePianoNotesKeyboardShortcutActions } from "./pianoNotesKeyboardShortc
 
 const SCROLL_DELTA = 24
 
-export const PianoRollKeyboardShortcut: FC = observer(() => {
-  const { pianoRollStore, controlStore } = useStores()
+export const PianoRollKeyboardShortcut: FC = () => {
+  const { selectedNoteIds, scrollBy, setMouseMode } = usePianoRoll()
+  const { selectedEventIds: controlSelectedEventIds } = useControlPane()
   const pianoNotesKeyboardShortcutActions =
     usePianoNotesKeyboardShortcutActions()
   const controlPaneKeyboardShortcutActions =
@@ -26,62 +27,56 @@ export const PianoRollKeyboardShortcut: FC = observer(() => {
   const selectAllNotes = useSelectAllNotes()
 
   // Handle pasting here to allow pasting even when the element does not have focus, such as after clicking the ruler
-  const onPaste = (e: ClipboardEvent) => {
+  const onPaste = async (e: ClipboardEvent) => {
     if (e.target !== null && isFocusable(e.target)) {
       return
     }
 
-    const text = clipboard.readText()
+    const obj = await readClipboardData()
 
-    if (!text || text.length === 0) {
-      return
-    }
-
-    const obj = JSON.parse(text)
-
-    if (isPianoNotesClipboardData(obj)) {
-      pasteSelection()
-    } else if (isControlEventsClipboardData(obj)) {
-      pasteControlSelection()
+    if (PianoNotesClipboardDataSchema.safeParse(obj).success) {
+      pasteSelection(obj)
+    } else if (ControlEventsClipboardDataSchema.safeParse(obj).success) {
+      pasteControlSelection(obj)
     }
   }
 
   return (
     <KeyboardShortcut
       actions={[
-        ...(pianoRollStore.selectedNoteIds.length > 0
+        ...(selectedNoteIds.length > 0
           ? pianoNotesKeyboardShortcutActions()
           : []),
-        ...(controlStore.selectedEventIds.length > 0
+        ...(controlSelectedEventIds.length > 0
           ? controlPaneKeyboardShortcutActions()
           : []),
         {
           code: "ArrowUp",
           metaKey: true,
-          run: () => pianoRollStore.scrollBy(0, SCROLL_DELTA),
+          run: () => scrollBy(0, SCROLL_DELTA),
         },
         {
           code: "ArrowDown",
           metaKey: true,
-          run: () => pianoRollStore.scrollBy(0, -SCROLL_DELTA),
+          run: () => scrollBy(0, -SCROLL_DELTA),
         },
         {
           code: "ArrowRight",
           metaKey: true,
-          run: () => pianoRollStore.scrollBy(-SCROLL_DELTA, 0),
+          run: () => scrollBy(-SCROLL_DELTA, 0),
         },
         {
           code: "ArrowLeft",
           metaKey: true,
-          run: () => pianoRollStore.scrollBy(SCROLL_DELTA, 0),
+          run: () => scrollBy(SCROLL_DELTA, 0),
         },
         {
           code: "Digit1",
-          run: () => (pianoRollStore.mouseMode = "pencil"),
+          run: () => setMouseMode("pencil"),
         },
         {
           code: "Digit2",
-          run: () => (pianoRollStore.mouseMode = "selection"),
+          run: () => setMouseMode("selection"),
         },
         {
           code: "KeyA",
@@ -92,4 +87,4 @@ export const PianoRollKeyboardShortcut: FC = observer(() => {
       onPaste={onPaste}
     />
   )
-})
+}

@@ -1,9 +1,8 @@
 import { useTheme } from "@emotion/react"
 import styled from "@emotion/styled"
-import { observer } from "mobx-react-lite"
 import { FC } from "react"
 import { Layout } from "../../Constants"
-import { useStores } from "../../hooks/useStores"
+import { useKeyScroll } from "../../hooks/useKeyScroll"
 import CanvasPianoRuler from "./CanvasPianoRuler"
 import { PianoKeys } from "./PianoKeys"
 import { PianoRollCanvas } from "./PianoRollCanvas/PianoRollCanvas"
@@ -17,15 +16,15 @@ const Container = styled.div``
 
 const ContentPosition = styled.div`
   position: absolute;
-  left: ${Layout.keyWidth}px;
+  left: var(--size-key-width);
 `
 
 const RulerPosition = styled.div`
   position: absolute;
   top: 0;
   left: 0;
-  padding-left: ${Layout.keyWidth}px;
-  height: ${Layout.rulerHeight}px;
+  padding-left: var(--size-key-width);
+  height: var(--size-ruler-height);
 `
 
 const PianoKeyPosition = styled.div`
@@ -34,30 +33,26 @@ const PianoKeyPosition = styled.div`
   top: 0;
 `
 
-export const PianoRollStage: FC<PianoRollStageProps> = observer(
-  ({ width, height }) => {
-    const { pianoRollStore } = useStores()
-    const { scrollTop } = pianoRollStore
+export const PianoRollStage: FC<PianoRollStageProps> = ({ width, height }) => {
+  const { scrollTop } = useKeyScroll()
+  const theme = useTheme()
 
-    const theme = useTheme()
-
-    return (
-      <Container>
-        <ContentPosition style={{ top: Layout.rulerHeight }}>
-          <PianoRollCanvas width={width} height={height - Layout.rulerHeight} />
-        </ContentPosition>
-        <PianoKeyPosition style={{ top: -scrollTop + Layout.rulerHeight }}>
-          <PianoKeys />
-        </PianoKeyPosition>
-        <RulerPosition
-          style={{
-            background: theme.backgroundColor,
-            borderBottom: `1px solid ${theme.dividerColor}`,
-          }}
-        >
-          <CanvasPianoRuler rulerStore={pianoRollStore.rulerStore} />
-        </RulerPosition>
-      </Container>
-    )
-  },
-)
+  return (
+    <Container>
+      <ContentPosition style={{ top: Layout.rulerHeight }}>
+        <PianoRollCanvas width={width} height={height - Layout.rulerHeight} />
+      </ContentPosition>
+      <PianoKeyPosition style={{ top: -scrollTop + Layout.rulerHeight }}>
+        <PianoKeys />
+      </PianoKeyPosition>
+      <RulerPosition
+        style={{
+          background: theme.backgroundColor,
+          borderBottom: `1px solid ${theme.dividerColor}`,
+        }}
+      >
+        <CanvasPianoRuler />
+      </RulerPosition>
+    </Container>
+  )
+}

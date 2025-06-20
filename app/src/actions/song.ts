@@ -1,4 +1,9 @@
-import { useStores } from "../hooks/useStores"
+import { useArrangeView } from "../hooks/useArrangeView"
+import { useHistory } from "../hooks/useHistory"
+import { usePianoRoll } from "../hooks/usePianoRoll"
+import { usePlayer } from "../hooks/usePlayer"
+import { useSong } from "../hooks/useSong"
+import { useTrackMute } from "../hooks/useTrackMute"
 import { downloadSongAsMidi } from "../midi/midiConversion"
 import Song, { emptySong } from "../song"
 import { emptyTrack, TrackId, UNASSIGNED_TRACK_ID } from "../track"
@@ -14,35 +19,46 @@ const openSongFile = async (input: HTMLInputElement): Promise<Song | null> => {
 }
 
 export const useSetSong = () => {
+  const { setSong } = useSong()
+  const { clear: clearHistory } = useHistory()
+  const { reset: resetTrackMute } = useTrackMute()
+  const { stop, reset, setPosition } = usePlayer()
   const {
-    songStore,
-    trackMute,
-    pianoRollStore,
-    player,
-    historyStore,
-    arrangeViewStore,
-  } = useStores()
+    setNotGhostTrackIds,
+    setScrollLeftInPixels,
+    setShowTrackList,
+    setSelection,
+    setSelectedNoteIds,
+    setSelectedTrackId,
+  } = usePianoRoll()
+
+  const {
+    setSelection: setArrangeSelection,
+    setSelectedEventIds: setArrangeSelectedEventIds,
+  } = useArrangeView()
 
   return (newSong: Song) => {
-    songStore.song = newSong
-    trackMute.reset()
+    setSong(newSong)
+    resetTrackMute()
 
-    pianoRollStore.setScrollLeftInPixels(0)
-    pianoRollStore.notGhostTrackIds = new Set()
-    pianoRollStore.showTrackList = true
-    pianoRollStore.selection = null
-    pianoRollStore.selectedNoteIds = []
-    pianoRollStore.selectedTrackId =
-      newSong.tracks.find((t) => !t.isConductorTrack)?.id ?? UNASSIGNED_TRACK_ID
+    setScrollLeftInPixels(0)
+    setNotGhostTrackIds(new Set())
+    setShowTrackList(true)
+    setSelection(null)
+    setSelectedNoteIds([])
+    setSelectedTrackId(
+      newSong.tracks.find((t) => !t.isConductorTrack)?.id ??
+        UNASSIGNED_TRACK_ID,
+    )
 
-    arrangeViewStore.selection = null
-    arrangeViewStore.selectedEventIds = []
+    setArrangeSelection(null)
+    setArrangeSelectedEventIds({})
 
-    historyStore.clear()
+    clearHistory()
 
-    player.stop()
-    player.reset()
-    player.position = 0
+    stop()
+    reset()
+    setPosition(0)
   }
 }
 
@@ -52,10 +68,12 @@ export const useCreateSong = () => {
 }
 
 export const useSaveSong = () => {
-  const { song } = useStores()
+  const { getSong } = useSong()
+  const { setSaved } = useSong()
+
   return () => {
-    song.isSaved = true
-    downloadSongAsMidi(song)
+    setSaved(true)
+    downloadSongAsMidi(getSong())
   }
 }
 
@@ -71,17 +89,29 @@ export const useOpenSong = () => {
 }
 
 export const useAddTrack = () => {
-  const { song, pushHistory } = useStores()
+  const { addTrack, tracks } = useSong()
+  const { pushHistory } = useHistory()
+
   return () => {
     pushHistory()
-    song.addTrack(emptyTrack(Math.min(song.tracks.length - 1, 0xf)))
+    addTrack(emptyTrack(Math.min(tracks.length - 1, 0xf)))
   }
 }
 
 export const useRemoveTrack = () => {
-  const { song, pianoRollStore, arrangeViewStore, pushHistory } = useStores()
+  const {
+    selectedTrackIndex: pianoRollSelectedTrackIndex,
+    setSelectedTrackIndex,
+  } = usePianoRoll()
+  const { tracks, removeTrack } = useSong()
+  const { pushHistory } = useHistory()
+  const {
+    selectedTrackIndex: arrangeSelectedTrackIndex,
+    setSelectedTrackIndex: setArrangeSelectedTrackIndex,
+  } = useArrangeView()
+
   return (trackId: TrackId) => {
-    if (song.tracks.filter((t) => !t.isConductorTrack).length <= 1) {
+    if (tracks.filter((t) => !t.isConductorTrack).length <= 1) {
       // conductor track を除き、最後のトラックの場合
       // トラックがなくなるとエラーが出るので削除できなくする
       // For the last track except for Conductor Track
@@ -89,46 +119,44 @@ export const useRemoveTrack = () => {
       return
     }
     pushHistory()
-    const pianoRollSelectedTrackIndex = pianoRollStore.selectedTrackIndex
-    const arrangeViewSelectedTrackIndex = arrangeViewStore.selectedTrackIndex
-    song.removeTrack(trackId)
-    pianoRollStore.selectedTrackIndex = Math.min(
-      pianoRollSelectedTrackIndex,
-      song.tracks.length - 1,
+    removeTrack(trackId)
+    setSelectedTrackIndex(
+      Math.min(pianoRollSelectedTrackIndex, tracks.length - 1),
     )
-    arrangeViewStore.selectedTrackIndex = Math.min(
-      arrangeViewSelectedTrackIndex,
-      song.tracks.length - 1,
+    setArrangeSelectedTrackIndex(
+      Math.min(arrangeSelectedTrackIndex, tracks.length - 1),
     )
   }
 }
 
 export const useSelectTrack = () => {
-  const { pianoRollStore } = useStores()
-  return (trackId: TrackId) => {
-    pianoRollStore.selectedTrackId = trackId
-  }
+  const { setSelectedTrackId } = usePianoRoll()
+  return setSelectedTrackId
 }
 
 export const useInsertTrack = () => {
-  const { song, pushHistory } = useStores()
+  const { insertTrack, tracks } = useSong()
+  const { pushHistory } = useHistory()
+
   return (trackIndex: number) => {
     pushHistory()
-    song.insertTrack(emptyTrack(song.tracks.length - 1), trackIndex)
+    insertTrack(emptyTrack(tracks.length - 1), trackIndex)
   }
 }
 
 export const useDuplicateTrack = () => {
-  const { song, pushHistory } = useStores()
+  const { getTrack, tracks, insertTrack } = useSong()
+  const { pushHistory } = useHistory()
+
   return (trackId: TrackId) => {
-    const track = song.getTrack(trackId)
+    const track = getTrack(trackId)
     if (track === undefined) {
       throw new Error("No track found")
     }
-    const trackIndex = song.tracks.findIndex((t) => t.id === trackId)
+    const trackIndex = tracks.findIndex((t) => t.id === trackId)
     const newTrack = track.clone()
     newTrack.channel = undefined
     pushHistory()
-    song.insertTrack(newTrack, trackIndex + 1)
+    insertTrack(newTrack, trackIndex + 1)
   }
 }

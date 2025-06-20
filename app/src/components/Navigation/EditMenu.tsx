@@ -1,4 +1,3 @@
-import { observer } from "mobx-react-lite"
 import { FC } from "react"
 import {
   useCopySelection,
@@ -11,16 +10,16 @@ import {
   useSelectPreviousNote,
   useTransposeSelection,
 } from "../../actions"
-import { useRedo, useUndo } from "../../actions/history"
-import { useStores } from "../../hooks/useStores"
+import { useHistory } from "../../hooks/useHistory"
+import { usePianoRoll } from "../../hooks/usePianoRoll"
 import { envString } from "../../localize/envString"
 import { Localized } from "../../localize/useLocalization"
 import { MenuHotKey as HotKey, MenuDivider, MenuItem } from "../ui/Menu"
 
-export const EditMenu: FC<{ close: () => void }> = observer(({ close }) => {
-  const { historyStore, pianoRollStore } = useStores()
-  const undo = useUndo()
-  const redo = useRedo()
+export const EditMenu: FC<{ close: () => void }> = ({ close }) => {
+  const { selectedNoteIds, setOpenTransposeDialog, setOpenVelocityDialog } =
+    usePianoRoll()
+  const { hasUndo, hasRedo, undo, redo } = useHistory()
   const copySelection = useCopySelection()
   const pasteSelection = usePasteSelection()
   const deleteSelection = useDeleteSelection()
@@ -30,7 +29,7 @@ export const EditMenu: FC<{ close: () => void }> = observer(({ close }) => {
   const selectPreviousNote = useSelectPreviousNote()
   const quantizeSelectedNotes = useQuantizeSelectedNotes()
   const transposeSelection = useTransposeSelection()
-  const anySelectedNotes = pianoRollStore.selectedNoteIds.length > 0
+  const anySelectedNotes = selectedNoteIds.length > 0
 
   const onClickUndo = async () => {
     close()
@@ -100,22 +99,22 @@ export const EditMenu: FC<{ close: () => void }> = observer(({ close }) => {
 
   const onClickTranspose = () => {
     close()
-    pianoRollStore.openTransposeDialog = true
+    setOpenTransposeDialog(true)
   }
 
   const onClickVelocity = () => {
     close()
-    pianoRollStore.openVelocityDialog = true
+    setOpenVelocityDialog(true)
   }
 
   return (
     <>
-      <MenuItem onClick={onClickUndo} disabled={!historyStore.hasUndo}>
+      <MenuItem onClick={onClickUndo} disabled={!hasUndo}>
         <Localized name="undo" />
         <HotKey>{envString.cmdOrCtrl}+Z</HotKey>
       </MenuItem>
 
-      <MenuItem onClick={onClickRedo} disabled={!historyStore.hasRedo}>
+      <MenuItem onClick={onClickRedo} disabled={!hasRedo}>
         <Localized name="redo" />
         <HotKey>{envString.cmdOrCtrl}+Shift+Z</HotKey>
       </MenuItem>
@@ -132,7 +131,7 @@ export const EditMenu: FC<{ close: () => void }> = observer(({ close }) => {
         <HotKey>{envString.cmdOrCtrl}+C</HotKey>
       </MenuItem>
 
-      <MenuItem onClick={onClickPaste} disabled={!anySelectedNotes}>
+      <MenuItem onClick={onClickPaste}>
         <Localized name="paste" />
         <HotKey>{envString.cmdOrCtrl}+V</HotKey>
       </MenuItem>
@@ -202,4 +201,4 @@ export const EditMenu: FC<{ close: () => void }> = observer(({ close }) => {
       </MenuItem>
     </>
   )
-})
+}

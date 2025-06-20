@@ -1,6 +1,7 @@
 import { Point } from "../../../entities/geometry/Point"
 import { MouseGesture } from "../../../gesture/MouseGesture"
-import { useStores } from "../../../hooks/useStores"
+import { usePianoRoll } from "../../../hooks/usePianoRoll"
+import { useTrack } from "../../../hooks/useTrack"
 import { PianoNoteItem } from "../../../stores/PianoRollStore"
 import { useAddNoteToSelectionGesture } from "./gestures/useAddNoteToSelectionGesture"
 import { useCreateNoteGesture } from "./gestures/useCreateNoteGesture"
@@ -15,7 +16,8 @@ import { useSelectNoteGesture } from "./gestures/useSelectNoteGesture"
 import { CursorProvider } from "./useNoteMouseGesture"
 
 export const usePencilGesture = (): MouseGesture & CursorProvider => {
-  const { pianoRollStore } = useStores()
+  const { getLocal, getNotes, selectedTrackId } = usePianoRoll()
+  const { isRhythmTrack } = useTrack(selectedTrackId)
   const removeNoteGesture = useRemoveNoteGesture()
   const createNoteGesture = useCreateNoteGesture()
   const selectNoteGesture = useSelectNoteGesture()
@@ -27,9 +29,8 @@ export const usePencilGesture = (): MouseGesture & CursorProvider => {
 
   return {
     onMouseDown(e: MouseEvent) {
-      const local = pianoRollStore.getLocal(e)
-      const items = pianoRollStore.getNotes(local)
-      const isDrum = pianoRollStore.selectedTrack?.isRhythmTrack ?? false
+      const local = getLocal(e)
+      const items = getNotes(local)
 
       switch (e.button) {
         case 0: {
@@ -47,7 +48,7 @@ export const usePencilGesture = (): MouseGesture & CursorProvider => {
                 addNoteToSelectionGesture.onMouseDown(e, item.id)
               }
             } else {
-              const position = getPositionType(local, item, isDrum)
+              const position = getPositionType(local, item, isRhythmTrack)
               switch (position) {
                 case "center":
                   return dragNoteCenterGesture.onMouseDown(e, item.id)
@@ -73,11 +74,10 @@ export const usePencilGesture = (): MouseGesture & CursorProvider => {
       }
     },
     getCursor(e: MouseEvent): string {
-      const local = pianoRollStore.getLocal(e)
-      const items = pianoRollStore.getNotes(local)
-      const isDrum = pianoRollStore.selectedTrack?.isRhythmTrack ?? false
+      const local = getLocal(e)
+      const items = getNotes(local)
       if (items.length > 0) {
-        const position = getPositionType(local, items[0], isDrum)
+        const position = getPositionType(local, items[0], isRhythmTrack)
         return mousePositionToCursor(position)
       }
 

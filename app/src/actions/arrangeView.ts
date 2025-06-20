@@ -1,115 +1,36 @@
 import mapValues from "lodash/mapValues"
+import { transaction } from "mobx"
 import {
   ArrangeNotesClipboardData,
-  isArrangeNotesClipboardData,
+  ArrangeNotesClipboardDataSchema,
 } from "../clipboard/clipboardTypes"
 import { Range } from "../entities/geometry/Range"
 import { ArrangeSelection } from "../entities/selection/ArrangeSelection"
 import { ArrangePoint } from "../entities/transform/ArrangePoint"
 import { isNotUndefined } from "../helpers/array"
 import { isEventInRange } from "../helpers/filterEvents"
-import { useStores } from "../hooks/useStores"
-import clipboard from "../services/Clipboard"
+import { useArrangeView } from "../hooks/useArrangeView"
+import { useHistory } from "../hooks/useHistory"
+import { usePlayer } from "../hooks/usePlayer"
+import { useSong } from "../hooks/useSong"
+import { readClipboardData, writeClipboardData } from "../services/Clipboard"
 import Track from "../track"
 import { batchUpdateNotesVelocity, BatchUpdateOperation } from "./track"
 
-export const useArrangeResizeSelection = () => {
-  const {
-    song: { tracks },
-    arrangeViewStore,
-    arrangeViewStore: { quantizer },
-  } = useStores()
-
-  return (start: ArrangePoint, end: ArrangePoint) => {
-    // 選択範囲作成時 (確定前) のドラッグ中
-    // Drag during selection (before finalization)
-    arrangeViewStore.selection = ArrangeSelection.fromPoints(
-      start,
-      end,
-      quantizer,
-      tracks.length,
-    )
-  }
-}
-
-export const useArrangeEndSelection = () => {
-  const {
-    arrangeViewStore,
-    song: { tracks },
-  } = useStores()
-
-  return () => {
-    const { selection } = arrangeViewStore
-    if (selection) {
-      arrangeViewStore.selectedEventIds = getEventsInSelection(
-        tracks,
-        selection,
-      )
-    }
-  }
-}
-
-export const useArrangeMoveSelection = () => {
-  const {
-    arrangeViewStore,
-    arrangeViewStore: { quantizer },
-    song: { tracks },
-  } = useStores()
-
-  const arrangeMoveSelectionBy = useArrangeMoveSelectionBy()
-
-  return (point: ArrangePoint) => {
-    const { selection } = arrangeViewStore
-    if (selection === null) {
-      return
-    }
-
-    // quantize
-    point = {
-      tick: quantizer.round(point.tick),
-      trackIndex: Math.round(point.trackIndex),
-    }
-
-    // clamp
-    point = ArrangePoint.clamp(
-      point,
-      tracks.length - (selection.toTrackIndex - selection.fromTrackIndex),
-    )
-
-    const delta = ArrangePoint.sub(point, ArrangeSelection.start(selection))
-
-    arrangeMoveSelectionBy(delta)
-  }
-}
-
-export const useArrangeMoveSelectionBy = () => {
-  const {
-    arrangeViewStore: s,
-    song: { tracks },
-  } = useStores()
-
-  return (delta: ArrangePoint) => {
-    if (s.selection === null) {
-      return
-    }
-
-    if (delta.tick === 0 && delta.trackIndex === 0) {
-      return
-    }
-
-    // Move selection range
-    const selection = ArrangeSelection.moved(s.selection, delta)
-
-    s.selection = selection
-
-    // Move notes
+// returns moved event ids
+export const moveEventsBetweenTracks = (
+  tracks: readonly Track[],
+  eventIdForTrackIndex: { [trackIndex: number]: number[] },
+  delta: ArrangePoint,
+) =>
+  transaction(() => {
     const updates = []
-    for (const [trackIndexStr, selectedEventIds] of Object.entries(
-      s.selectedEventIds,
+    for (const [trackIndexStr, selectedEventIdsValue] of Object.entries(
+      eventIdForTrackIndex,
     )) {
       const trackIndex = parseInt(trackIndexStr, 10)
       const track = tracks[trackIndex]
-      const events = selectedEventIds
+      const events = selectedEventIdsValue
         .map((id) => track.getEventById(id))
         .filter(isNotUndefined)
 
@@ -132,22 +53,21 @@ export const useArrangeMoveSelectionBy = () => {
       }
     }
     if (delta.trackIndex !== 0) {
-      const ids: { [key: number]: number[] } = {}
+      const ids: { [trackIndex: number]: number[] } = {}
       for (const u of updates) {
         tracks[u.sourceTrackIndex].removeEvents(u.events.map((e) => e.id))
         const events = tracks[u.destinationTrackIndex].addEvents(u.events)
         ids[u.destinationTrackIndex] = events.map((e) => e.id)
       }
-      s.selectedEventIds = ids
+      return ids
     }
-  }
-}
+
+    return eventIdForTrackIndex
+  })
 
 export const useArrangeCopySelection = () => {
-  const {
-    arrangeViewStore: { selection, selectedEventIds },
-    song: { tracks },
-  } = useStores()
+  const { tracks } = useSong()
+  const { selection, selectedEventIds } = useArrangeView()
 
   return () => {
     if (selection === null) {
@@ -169,40 +89,37 @@ export const useArrangeCopySelection = () => {
       notes,
       selectedTrackIndex: selection.fromTrackIndex,
     }
-    clipboard.writeText(JSON.stringify(data))
+    writeClipboardData(data)
   }
 }
 
 export const useArrangePasteSelection = () => {
-  const {
-    song: { tracks },
-    player,
-    arrangeViewStore: { selectedTrackIndex },
-    pushHistory,
-  } = useStores()
+  const { position } = usePlayer()
+  const { tracks } = useSong()
+  const { pushHistory } = useHistory()
+  const { selectedTrackIndex } = useArrangeView()
 
-  return () => {
-    const text = clipboard.readText()
-    if (!text || text.length === 0) {
-      return
-    }
-    const obj = JSON.parse(text)
-    if (!isArrangeNotesClipboardData(obj)) {
+  return async () => {
+    const obj = await readClipboardData()
+    const { data, error } = ArrangeNotesClipboardDataSchema.safeParse(obj)
+
+    if (!data) {
+      console.error("Invalid clipboard data", error)
       return
     }
 
     pushHistory()
 
-    for (const trackIndex in obj.notes) {
-      const notes = obj.notes[trackIndex].map((note) => ({
+    for (const trackIndex in data.notes) {
+      const notes = data.notes[trackIndex].map((note) => ({
         ...note,
-        tick: note.tick + player.position,
+        tick: note.tick + position,
       }))
 
       const isRulerSelected = selectedTrackIndex < 0
       const trackNumberOffset = isRulerSelected
         ? 0
-        : -obj.selectedTrackIndex + selectedTrackIndex
+        : -data.selectedTrackIndex + selectedTrackIndex
 
       const destTrackIndex = parseInt(trackIndex) + trackNumberOffset
 
@@ -214,25 +131,27 @@ export const useArrangePasteSelection = () => {
 }
 
 export const useArrangeDeleteSelection = () => {
-  const {
-    arrangeViewStore: s,
-    song: { tracks },
-    pushHistory,
-  } = useStores()
+  const { tracks } = useSong()
+  const { pushHistory } = useHistory()
+  const { setSelection, selectedEventIds, setSelectedEventIds } =
+    useArrangeView()
 
   return () => {
     pushHistory()
 
-    for (const trackIndex in s.selectedEventIds) {
-      tracks[trackIndex].removeEvents(s.selectedEventIds[trackIndex])
+    for (const trackIndex in selectedEventIds) {
+      tracks[trackIndex].removeEvents(selectedEventIds[trackIndex])
     }
-    s.selection = null
-    s.selectedEventIds = []
+    setSelectedEventIds({})
+    setSelection(null)
   }
 }
 
 // returns { trackIndex: [eventId] }
-function getEventsInSelection(tracks: Track[], selection: ArrangeSelection) {
+export function getEventsInSelection(
+  tracks: readonly Track[],
+  selection: ArrangeSelection,
+) {
   const ids: { [key: number]: number[] } = {}
   for (
     let trackIndex = selection.fromTrackIndex;
@@ -249,25 +168,21 @@ function getEventsInSelection(tracks: Track[], selection: ArrangeSelection) {
 }
 
 export const useArrangeTransposeSelection = () => {
-  const {
-    song,
-    pushHistory,
-    arrangeViewStore: { selectedEventIds },
-  } = useStores()
+  const { transposeNotes } = useSong()
+  const { pushHistory } = useHistory()
+  const { selectedEventIds } = useArrangeView()
 
   return (deltaPitch: number) => {
     pushHistory()
-    song.transposeNotes(deltaPitch, selectedEventIds)
+    transposeNotes(deltaPitch, selectedEventIds)
   }
 }
 
 export const useArrangeDuplicateSelection = () => {
-  const {
-    song: { tracks },
-    arrangeViewStore,
-    arrangeViewStore: { selection, selectedEventIds },
-    pushHistory,
-  } = useStores()
+  const { tracks } = useSong()
+  const { pushHistory } = useHistory()
+  const { selection, selectedEventIds, setSelection, setSelectedEventIds } =
+    useArrangeView()
 
   return () => {
     if (selection === null) {
@@ -296,26 +211,23 @@ export const useArrangeDuplicateSelection = () => {
       addedEventIds[trackIndex] = newEvent.map((e) => e.id)
     }
 
-    arrangeViewStore.selection = {
+    setSelection({
       fromTick: selection.fromTick + deltaTick,
       fromTrackIndex: selection.fromTrackIndex,
       toTick: selection.toTick + deltaTick,
       toTrackIndex: selection.toTrackIndex,
-    }
+    })
 
-    arrangeViewStore.selectedEventIds = addedEventIds
+    setSelectedEventIds(addedEventIds)
   }
 }
 
 export const useArrangeBatchUpdateSelectedNotesVelocity = () => {
-  const {
-    arrangeViewStore,
-    song: { tracks },
-    pushHistory,
-  } = useStores()
+  const { tracks } = useSong()
+  const { pushHistory } = useHistory()
+  const { selectedEventIds } = useArrangeView()
 
   return (operation: BatchUpdateOperation) => {
-    const { selectedEventIds } = arrangeViewStore
     pushHistory()
 
     for (const [trackIndexStr, eventIds] of Object.entries(selectedEventIds)) {
