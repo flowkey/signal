@@ -116,7 +116,6 @@ export function PianoRollScope({ children }: { children: React.ReactNode }) {
 export function usePianoRoll() {
   const pianoRollStore = useContext(PianoRollStoreContext)
   const { songStore } = useStores()
-  console.log(pianoRollStore)
   const { tickScrollStore, keyScrollStore } = pianoRollStore
   const { setScrollLeftInTicks, setScrollLeftInPixels } =
     useTickScroll(tickScrollStore)
