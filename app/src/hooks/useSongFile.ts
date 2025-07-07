@@ -1,4 +1,4 @@
-import { useToast } from "/imports/signal/packages/dialog-hooks/src"
+import { useToast } from "dialog-hooks"
 import { ChangeEvent } from "react"
 import { useCreateSong, useOpenSong, useSaveSong } from "../actions"
 import { saveFile, saveFileAs, useOpenFile } from "../actions/file"

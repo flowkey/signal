@@ -1,4 +1,4 @@
-import { Player } from "/imports/signal/packages/player/src"
+import { Player } from "@signal-app/player"
 import { autorun, computed, makeObservable, observable } from "mobx"
 import { Layout } from "../Constants"
 import { TickTransform } from "../entities/transform/TickTransform"

@@ -1,5 +1,5 @@
 import styled from "@emotion/styled"
-import { CloudSong } from "/imports/signal/packages/api/src"
+import { CloudSong } from "@signal-app/api"
 import { FC } from "react"
 import { Link } from "wouter"
 import { Localized } from "../localize/useLocalization.js"

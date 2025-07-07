@@ -1,4 +1,4 @@
-import { Player } from "/imports/signal/packages/player/src"
+import { Player } from "@signal-app/player"
 import { deserializeSingleEvent, Stream } from "midifile-ts"
 import { makeObservable, observable, observe } from "mobx"
 import { SongStore } from "../stores/SongStore"
@@ -95,7 +95,7 @@ export class MIDIRecorder {
           })
 
         this.recordedNotes = this.recordedNotes.filter(
-          (n) => n.noteNumber !== message.noteNumber
+          (n) => n.noteNumber !== message.noteNumber,
         )
         break
       }

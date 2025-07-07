@@ -1,5 +1,5 @@
-import { CloudSong } from "/imports/signal/packages/api/src"
-import { useToast } from "/imports/signal/packages/dialog-hooks/src"
+import { CloudSong } from "@signal-app/api"
+import { useToast } from "dialog-hooks"
 import { observer } from "mobx-react-lite"
 import { FC, useState } from "react"
 import { useAsyncEffect } from "../hooks/useAsyncEffect.js"

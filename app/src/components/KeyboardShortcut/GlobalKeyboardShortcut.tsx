@@ -1,4 +1,4 @@
-import { useToast } from "/imports/signal/packages/dialog-hooks/src"
+import { useToast } from "dialog-hooks"
 import { FC, useEffect } from "react"
 import {
   useFastForwardOneBar,

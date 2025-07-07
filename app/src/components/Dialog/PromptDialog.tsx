@@ -1,7 +1,4 @@
-import {
-  PromptContext,
-  PromptProps,
-} from "/imports/signal/packages/dialog-hooks/src"
+import { PromptContext, PromptProps } from "dialog-hooks"
 import { FC, useContext, useState } from "react"
 import {
   Dialog,

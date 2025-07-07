@@ -19,10 +19,7 @@ export default class TempoEditorStore {
   selection: TempoSelection | null = null
   selectedEventIds: number[] = []
 
-  constructor(
-    private readonly songStore: SongStore,
-    player: Player,
-  ) {
+  constructor(private readonly songStore: SongStore, player: Player) {
     this.tickScrollStore = new TickScrollStore(this.songStore, player, 0.15, 15)
     this.rulerStore = new RulerStore(this, this.tickScrollStore, this.songStore)
 

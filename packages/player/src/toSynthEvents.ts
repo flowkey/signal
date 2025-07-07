@@ -11,7 +11,7 @@ interface Keyframe {
 export const toSynthEvents = (
   events: PlayerEvent[],
   timebase: number,
-  sampleRate: number
+  sampleRate: number,
 ): SynthEvent[] => {
   events = events.sort((a, b) => a.tick - b.tick)
 

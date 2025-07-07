@@ -1,4 +1,4 @@
-import { CloudSong } from "/imports/signal/packages/api/src"
+import { CloudSong } from "@signal-app/api"
 import { observer } from "mobx-react-lite"
 import { FC } from "react"
 import { Localized, useLocalization } from "../localize/useLocalization.js"
@@ -34,7 +34,7 @@ export const ShareDialog: FC<ShareDialogProps> = observer(
         </DialogActions>
       </Dialog>
     )
-  }
+  },
 )
 
 const getCloudSongUrl = (cloudSongId: string) =>

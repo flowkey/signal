@@ -47,7 +47,7 @@ export class SoundFontSynth implements SynthOutput {
     for (const e of sampleEvents) {
       this.postSynthMessage(
         e.event,
-        e.transfer // transfer instead of copy
+        e.transfer, // transfer instead of copy
       )
     }
   }
@@ -55,7 +55,7 @@ export class SoundFontSynth implements SynthOutput {
   private postSynthMessage(e: SynthEvent, transfer?: Transferable[]) {
     this.synth?.port.postMessage(
       { ...e, sequenceNumber: this.sequenceNumber++ },
-      transfer ?? []
+      transfer ?? [],
     )
   }
 

@@ -1,7 +1,4 @@
-import {
-  CloudSong,
-  ICloudSongDataRepository,
-} from "/imports/signal/packages/api/src"
+import { CloudSong, ICloudSongDataRepository } from "@signal-app/api"
 import { read } from "midifile-ts"
 import { computed, makeObservable, observable } from "mobx"
 import { Song, emptySong } from "../song/Song"

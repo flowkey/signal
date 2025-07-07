@@ -1,4 +1,4 @@
-import { PlayerEvent } from "/imports/signal/packages/player/src"
+import { PlayerEvent } from "@signal-app/player"
 import {
   action,
   computed,
@@ -131,7 +131,7 @@ export default class Song {
     deltaPitch: number,
     selectedEventIds: {
       [key: number]: number[] // trackIndex: eventId
-    }
+    },
   ) {
     for (const trackIndexStr in selectedEventIds) {
       const trackIndex = parseInt(trackIndexStr)
@@ -152,7 +152,7 @@ export default class Song {
               noteNumber: NoteNumber.clamp(n.noteNumber + deltaPitch),
             }
           })
-          .filter(isNotNull)
+          .filter(isNotNull),
       )
     }
   }

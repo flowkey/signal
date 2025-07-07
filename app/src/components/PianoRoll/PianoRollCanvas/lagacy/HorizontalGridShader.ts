@@ -93,5 +93,5 @@ export const HorizontalGridShader = (gl: WebGLRenderingContext) =>
       blackLaneColor: uniformVec4(gl, program, "uBlackLaneColor"),
       height: uniformFloat(gl, program, "uHeight"),
     }),
-    (gl) => new HorizontalGridBuffer(gl)
+    (gl) => new HorizontalGridBuffer(gl),
   )

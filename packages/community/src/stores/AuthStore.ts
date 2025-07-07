@@ -1,8 +1,4 @@
-import {
-  AuthUser,
-  IUserRepository,
-  User,
-} from "/imports/signal/packages/api/src"
+import { AuthUser, IUserRepository, User } from "@signal-app/api"
 import { makeObservable, observable } from "mobx"
 
 export class AuthStore {

@@ -2,13 +2,8 @@ import {
   CloudSong,
   ICloudSongDataRepository,
   ICloudSongRepository,
-} from "/imports/signal/packages/api/src"
-import {
-  useDialog,
-  useProgress,
-  usePrompt,
-  useToast,
-} from "/imports/signal/packages/dialog-hooks/src"
+} from "@signal-app/api"
+import { useDialog, useProgress, usePrompt, useToast } from "dialog-hooks"
 import { orderBy } from "lodash"
 import { computed, makeObservable, observable } from "mobx"
 import {
@@ -43,7 +38,7 @@ class CloudFileStore {
   constructor(
     private readonly songStore: SongStore,
     private readonly cloudSongRepository: ICloudSongRepository,
-    private readonly cloudSongDataRepository: ICloudSongDataRepository
+    private readonly cloudSongDataRepository: ICloudSongDataRepository,
   ) {
     makeObservable(this, {
       isLoading: observable,
@@ -77,7 +72,7 @@ class CloudFileStore {
             }
         }
       },
-      this.sortAscending ? "asc" : "desc"
+      this.sortAscending ? "asc" : "desc",
     )
   }
 
@@ -102,9 +97,9 @@ export function CloudFileProvider({ children }: { children: React.ReactNode }) {
       new CloudFileStore(
         songStore,
         cloudSongRepository,
-        cloudSongDataRepository
+        cloudSongDataRepository,
       ),
-    [songStore]
+    [songStore],
   )
 
   return (
@@ -209,32 +204,32 @@ export const useCloudFile = () => {
     get selectedColumn() {
       return useMobxSelector(
         () => cloudFileStore.selectedColumn,
-        [cloudFileStore]
+        [cloudFileStore],
       )
     },
     get sortAscending() {
       return useMobxSelector(
         () => cloudFileStore.sortAscending,
-        [cloudFileStore]
+        [cloudFileStore],
       )
     },
     setDateType: useCallback(
       (type: "created" | "updated") => {
         cloudFileStore.dateType = type
       },
-      [cloudFileStore]
+      [cloudFileStore],
     ),
     setSelectedColumn: useCallback(
       (column: "name" | "date") => {
         cloudFileStore.selectedColumn = column
       },
-      [cloudFileStore]
+      [cloudFileStore],
     ),
     setSortAscending: useCallback(
       (ascending: boolean) => {
         cloudFileStore.sortAscending = ascending
       },
-      [cloudFileStore]
+      [cloudFileStore],
     ),
     loadFiles: useCallback(() => {
       cloudFileStore.load()

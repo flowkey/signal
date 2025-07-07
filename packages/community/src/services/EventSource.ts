@@ -3,7 +3,7 @@ import {
   PlayerEvent,
   PlayerEventOf,
   SendableEvent,
-} from "/imports/signal/packages/player/src"
+} from "@signal-app/player"
 import maxBy from "lodash/maxBy.js"
 import uniq from "lodash/uniq.js"
 import { AnyChannelEvent } from "midifile-ts"
@@ -38,7 +38,7 @@ export class EventSource implements IEventSource {
       track.events.filter(isEventInRange(startTick, endTick)).map((event) => ({
         ...event,
         trackId: -1,
-      }))
+      })),
     )
   }
 
@@ -50,14 +50,14 @@ export class EventSource implements IEventSource {
           ({
             ...e,
             trackId: -1,
-          } as PlayerEventOf<AnyChannelEvent>)
+          } as PlayerEventOf<AnyChannelEvent>),
       )
     })
   }
 }
 
 export const getLast = <T extends { tick: number }>(
-  events: T[]
+  events: T[],
 ): T | undefined => maxBy(events, (e) => e.tick)
 
 export const isTickBefore =
@@ -73,23 +73,23 @@ const getStatusEvents = (events: readonly TrackEvent[], tick: number) => {
   // remove duplicated control types
   const recentControlEvents = uniq(controlEvents.map((e) => e.controllerType))
     .map((type) =>
-      getLast(controlEvents.filter(isControllerEventWithType(type)))
+      getLast(controlEvents.filter(isControllerEventWithType(type))),
     )
     .filter(isNotUndefined)
 
   const setTempo = getLast(
-    events.filter(isSetTempoEvent).filter(isTickBefore(tick))
+    events.filter(isSetTempoEvent).filter(isTickBefore(tick)),
   )
 
   const programChange = getLast(
-    events.filter(isProgramChangeEvent).filter(isTickBefore(tick))
+    events.filter(isProgramChangeEvent).filter(isTickBefore(tick)),
   )
 
   const pitchBend = getLast(
-    events.filter(isPitchBendEvent).filter(isTickBefore(tick))
+    events.filter(isPitchBendEvent).filter(isTickBefore(tick)),
   )
 
   return [...recentControlEvents, setTempo, programChange, pitchBend].filter(
-    isNotUndefined
+    isNotUndefined,
   )
 }

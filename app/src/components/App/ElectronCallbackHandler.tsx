@@ -1,4 +1,4 @@
-import { useToast } from "/imports/signal/packages/dialog-hooks/src"
+import { useToast } from "dialog-hooks"
 import {
   GithubAuthProvider,
   GoogleAuthProvider,
@@ -195,7 +195,7 @@ function createCredential(credential: FirebaseCredential) {
     case "google.com":
       return GoogleAuthProvider.credential(
         credential.idToken,
-        credential.accessToken
+        credential.accessToken,
       )
     case "github.com":
       return GithubAuthProvider.credential(credential.accessToken)

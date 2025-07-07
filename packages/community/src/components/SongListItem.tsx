@@ -1,6 +1,6 @@
 import styled from "@emotion/styled"
-import { CloudSong } from "/imports/signal/packages/api/src"
-import { useToast } from "/imports/signal/packages/dialog-hooks/src"
+import { CloudSong } from "@signal-app/api"
+import { useToast } from "dialog-hooks"
 import Circle from "mdi-react/CircleIcon.js"
 import Pause from "mdi-react/PauseIcon.js"
 import PlayArrow from "mdi-react/PlayArrowIcon.js"

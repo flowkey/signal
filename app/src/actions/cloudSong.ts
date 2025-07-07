@@ -1,4 +1,4 @@
-import { CloudSong } from "/imports/signal/packages/api/src"
+import { CloudSong } from "@signal-app/api"
 import { basename } from "../helpers/path"
 import { songFromMidi, songToMidi } from "../midi/midiConversion"
 import {

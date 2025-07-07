@@ -1,7 +1,7 @@
 import { keyframes, useTheme } from "@emotion/react"
 import styled from "@emotion/styled"
 import * as Portal from "@radix-ui/react-portal"
-import { ToastSeverity } from "/imports/signal/packages/dialog-hooks/src"
+import { ToastSeverity } from "dialog-hooks"
 import Error from "mdi-react/AlertCircleIcon.js"
 import Warning from "mdi-react/AlertIcon.js"
 import CheckCircle from "mdi-react/CheckCircleIcon.js"

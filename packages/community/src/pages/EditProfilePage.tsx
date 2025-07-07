@@ -1,5 +1,5 @@
 import styled from "@emotion/styled"
-import { useToast } from "/imports/signal/packages/dialog-hooks/src"
+import { useToast } from "dialog-hooks"
 import { observer } from "mobx-react-lite"
 import { FC, useState } from "react"
 import { Alert } from "../components/Alert.js"

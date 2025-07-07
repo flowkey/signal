@@ -1,4 +1,4 @@
-import { useToast } from "/imports/signal/packages/dialog-hooks/src"
+import { useToast } from "dialog-hooks"
 import { observer } from "mobx-react-lite"
 import { FC, useCallback } from "react"
 import { useStores } from "../../hooks/useStores.js"
@@ -16,7 +16,7 @@ export const SignInDialog: FC = observer(() => {
 
   const onClose = useCallback(
     () => (rootViewStore.openSignInDialog = false),
-    [rootViewStore]
+    [rootViewStore],
   )
 
   const signInSuccessWithAuthResult = async () => {

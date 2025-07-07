@@ -35,10 +35,7 @@ export default class ArrangeViewStore {
   openTransposeDialog = false
   openVelocityDialog = false
 
-  constructor(
-    private readonly songStore: SongStore,
-    player: Player,
-  ) {
+  constructor(private readonly songStore: SongStore, player: Player) {
     this.tickScrollStore = new TickScrollStore(this.songStore, player, 0.15, 15)
     this.trackScrollStore = new TrackScrollStore(this.songStore)
     this.rulerStore = new RulerStore(this, this.tickScrollStore, this.songStore)

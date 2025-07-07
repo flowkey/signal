@@ -1,6 +1,6 @@
 import styled from "@emotion/styled"
 import Color from "color"
-import { useToast } from "/imports/signal/packages/dialog-hooks/src"
+import { useToast } from "dialog-hooks"
 import RemoveIcon from "mdi-react/RemoveIcon"
 import { FC, useState } from "react"
 import { useSoundFont } from "../../hooks/useSoundFont"
