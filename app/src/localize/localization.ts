@@ -118,8 +118,10 @@ export default {
     "import-midi": "Import MIDI",
     "export-midi": "Export MIDI",
     general: "General",
+    appearance: "Appearance",
     "change-track-color": "Change Track Color",
     "control-settings": "Control Settings",
+    "show-note-labels": "Show Note Labels",
     add: "Add",
     remove: "Remove",
     "initialize-error": "Error occured in launch process",
@@ -151,6 +153,13 @@ export default {
     "delete-account": "Delete Account",
     "delete-account-description":
       "All songs and accounts stored in the cloud will be deleted. Once deleted, the data cannot be restored. If you really want to execute the deletion, press the Delete button.",
+    /* AutoSaveDialog */
+    "auto-save-dialog-title": "Restore Auto Saved Song",
+    "auto-save-dialog-description":
+      "An auto-saved song from your last session was found. Do you want to restore it?",
+    "auto-save-dialog-last-save-time": "Last saved at:",
+    "auto-save-dialog-restore": "Restore",
+    "auto-save-dialog-delete": "Delete",
     /* MIDI Instrument Categories */
     Piano: "Piano",
     "Chromatic Percussion": "Chromatic Percussion",
@@ -469,8 +478,10 @@ export default {
     "import-midi": "Importer un fichier MIDI",
     "export-midi": "Exporter un fichier MIDI",
     general: "General",
+    appearance: "Appearance",
     "change-track-color": "Changer la couleur de la piste",
     "control-settings": "Paramètres de Contrôle",
+    "show-note-labels": "Show Note Labels",
     add: "Ajouter",
     remove: "Enlever",
     "initialize-error": "Une erreur à eu lieu durant le lancement",
@@ -503,6 +514,13 @@ export default {
     "delete-account": "Supprimer le compte",
     "delete-account-description":
       "Toutes les chansons et tous les comptes stockés dans le cloud seront supprimés. Une fois supprimées, les données ne peuvent pas être restaurées. Si vous souhaitez vraiment exécuter la suppression, appuyez sur le bouton Supprimer.",
+    /* AutoSaveDialog */
+    "auto-save-dialog-title": "Restore Auto Saved Song",
+    "auto-save-dialog-description":
+      "An auto-saved song from your last session was found. Do you want to restore it?",
+    "auto-save-dialog-last-save-time": "Last saved at:",
+    "auto-save-dialog-restore": "Restore",
+    "auto-save-dialog-delete": "Delete",
     /* MIDI Instrument Categories */
     Piano: "Piano",
     "Chromatic Percussion": "Percussion Chromatique",
@@ -817,8 +835,10 @@ export default {
     "import-midi": "MIDI をインポート",
     "export-midi": "MIDI をエクスポート",
     general: "一般",
+    appearance: "表示",
     "change-track-color": "トラックの色を変更",
     "control-settings": "コントロール設定",
+    "show-note-labels": "ノートラベルを表示",
     add: "追加",
     remove: "削除",
     "initialize-error": "起動時の処理でエラーが発生しました",
@@ -849,6 +869,13 @@ export default {
     "delete-account": "アカウント削除",
     "delete-account-description":
       "クラウドに保存されたすべての楽曲とアカウントが削除されます。一度削除したデータは復元できません。本当に削除を実行しますか？",
+    /* AutoSaveDialog */
+    "auto-save-dialog-title": "自動保存された曲を復元",
+    "auto-save-dialog-description":
+      "前回のセッションから自動保存された曲が見つかりました。復元しますか？",
+    "auto-save-dialog-last-save-time": "最後の保存時間:",
+    "auto-save-dialog-restore": "復元",
+    "auto-save-dialog-delete": "削除",
     /* MIDI Instrument Categories */
     Piano: "ピアノ",
     "Chromatic Percussion": "クロマチック",
@@ -1163,8 +1190,10 @@ export default {
     "import-midi": "导入 MIDI",
     "export-midi": "导出 MIDI",
     general: "General",
+    appearance: "Appearance",
     "change-track-color": "Change Track Color",
     "control-settings": "Control Settings",
+    "show-note-labels": "Show Note Labels",
     add: "Add",
     remove: "Remove",
     "initialize-error": "Error occured in launch process",
@@ -1196,6 +1225,13 @@ export default {
     "delete-account": "Delete Account",
     "delete-account-description":
       "All songs and accounts stored in the cloud will be deleted. Once deleted, the data cannot be restored. If you really want to execute the deletion, press the Delete button.",
+    /* AutoSaveDialog */
+    "auto-save-dialog-title": "Restore Auto Saved Song",
+    "auto-save-dialog-description":
+      "An auto-saved song from your last session was found. Do you want to restore it?",
+    "auto-save-dialog-last-save-time": "Last saved at:",
+    "auto-save-dialog-restore": "Restore",
+    "auto-save-dialog-delete": "Delete",
     /* MIDI Instrument Categories */
     Piano: "钢琴",
     "Chromatic Percussion": "半音打击乐",
@@ -1510,8 +1546,10 @@ export default {
     "import-midi": "匯入 MIDI",
     "export-midi": "匯出 MIDI",
     general: "一般",
+    appearance: "Appearance",
     "change-track-color": "更改音軌顏色",
     "control-settings": "設定控制功能",
+    "show-note-labels": "Show Note Labels",
     add: "新增",
     remove: "移除",
     "initialize-error": "啟動時初始化發生錯誤",
@@ -1541,6 +1579,13 @@ export default {
     "delete-account": "Delete Account",
     "delete-account-description":
       "All songs and accounts stored in the cloud will be deleted. Once deleted, the data cannot be restored. If you really want to execute the deletion, press the Delete button.",
+    /* AutoSaveDialog */
+    "auto-save-dialog-title": "Restore Auto Saved Song",
+    "auto-save-dialog-description":
+      "An auto-saved song from your last session was found. Do you want to restore it?",
+    "auto-save-dialog-last-save-time": "Last saved at:",
+    "auto-save-dialog-restore": "Restore",
+    "auto-save-dialog-delete": "Delete",
     /* MIDI Instrument Categories */
     Piano: "鋼琴",
     "Chromatic Percussion": "固定音高敲擊樂器",
