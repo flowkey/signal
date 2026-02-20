@@ -7,14 +7,14 @@ import { useNoteColor } from "../../../hooks/useNoteColor"
 import { usePianoRoll } from "../../../hooks/usePianoRoll"
 import { useSettings } from "../../../hooks/useSettings"
 import { useTrack } from "../../../hooks/useTrack"
-import { useSyncHighlightedNoteIds } from "../../../hooks/useSyncHighlight"
+import { useHighlightedNoteIds } from "../../../hooks/useHighlightedNotes"
 import { LegacyNotes } from "./lagacy/LegacyNotes"
 import { NoteCircles } from "./NoteCircles"
 import { NoteLabels } from "./NoteLabels"
 import { NoteRectangles } from "./NoteRectangles"
 
-const SYNC_GREEN: vec4 = colorToVec4(Color("#22C55E"))
-const SYNC_GREEN_LIGHT: vec4 = colorToVec4(Color("#22C55E").lighten(0.7))
+const HIGHLIGHT_COLOR: vec4 = colorToVec4(Color("#22C55E"))
+const HIGHLIGHT_COLOR_LIGHT: vec4 = colorToVec4(Color("#22C55E").lighten(0.7))
 
 export interface NotesProps {
   zIndex: number
@@ -30,16 +30,14 @@ const _Notes: FC<{ zIndex: number }> = ({ zIndex }) => {
   const { borderColor, inactiveColor, activeColor, selectedColor } =
     useNoteColor()
   const { showNoteLabels } = useSettings()
-  const syncHighlightedIds = useSyncHighlightedNoteIds()
+  const highlightedIds = useHighlightedNoteIds()
 
   const normalNotes =
-    syncHighlightedIds.size > 0
-      ? notes.filter((n) => !syncHighlightedIds.has(n.id))
+    highlightedIds.size > 0
+      ? notes.filter((n) => !highlightedIds.has(n.id))
       : notes
-  const syncNotes =
-    syncHighlightedIds.size > 0
-      ? notes.filter((n) => syncHighlightedIds.has(n.id))
-      : []
+  const highlightedNotes =
+    highlightedIds.size > 0 ? notes.filter((n) => highlightedIds.has(n.id)) : []
 
   return (
     <>
@@ -53,13 +51,13 @@ const _Notes: FC<{ zIndex: number }> = ({ zIndex }) => {
             selectedColor={selectedColor}
             zIndex={zIndex}
           />
-          {syncNotes.length > 0 && (
+          {highlightedNotes.length > 0 && (
             <NoteCircles
               strokeColor={borderColor}
-              rects={syncNotes}
-              inactiveColor={SYNC_GREEN}
-              activeColor={SYNC_GREEN}
-              selectedColor={SYNC_GREEN_LIGHT}
+              rects={highlightedNotes}
+              inactiveColor={HIGHLIGHT_COLOR}
+              activeColor={HIGHLIGHT_COLOR}
+              selectedColor={HIGHLIGHT_COLOR_LIGHT}
               zIndex={zIndex + 0.05}
             />
           )}
@@ -75,13 +73,13 @@ const _Notes: FC<{ zIndex: number }> = ({ zIndex }) => {
             rects={normalNotes}
             zIndex={zIndex + 0.1}
           />
-          {syncNotes.length > 0 && (
+          {highlightedNotes.length > 0 && (
             <NoteRectangles
               strokeColor={borderColor}
-              inactiveColor={SYNC_GREEN}
-              activeColor={SYNC_GREEN}
-              selectedColor={SYNC_GREEN_LIGHT}
-              rects={syncNotes}
+              inactiveColor={HIGHLIGHT_COLOR}
+              activeColor={HIGHLIGHT_COLOR}
+              selectedColor={HIGHLIGHT_COLOR_LIGHT}
+              rects={highlightedNotes}
               zIndex={zIndex + 0.15}
             />
           )}
